@@ -1,13 +1,6 @@
 package es.altia.domeadapter.backend.shared.infrastructure.controller.error;
 
-import es.altia.domeadapter.backend.shared.domain.exception.FormatUnsupportedException;
-import es.altia.domeadapter.backend.shared.domain.exception.InvalidCredentialFormatException;
-import es.altia.domeadapter.backend.shared.domain.exception.JWTParsingException;
-import es.altia.domeadapter.backend.shared.domain.exception.JWTVerificationException;
-import es.altia.domeadapter.backend.shared.domain.exception.MissingEmailOwnerException;
-import es.altia.domeadapter.backend.shared.domain.exception.MissingIdTokenHeaderException;
-import es.altia.domeadapter.backend.shared.domain.exception.ProofValidationException;
-import es.altia.domeadapter.backend.shared.domain.exception.UnsupportedCredentialSchemaException;
+import es.altia.domeadapter.backend.shared.domain.exception.*;
 import es.altia.domeadapter.backend.shared.domain.model.dto.GlobalErrorMessage;
 import es.altia.domeadapter.backend.shared.domain.util.GlobalErrorTypes;
 import lombok.RequiredArgsConstructor;
@@ -193,6 +186,21 @@ public class GlobalExceptionHandler {
                 GlobalErrorTypes.EMAIL_COMMUNICATION.getCode(),
                 "Missing email",
                 HttpStatus.BAD_REQUEST,
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(InvalidIssuerResponseException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public Mono<GlobalErrorMessage> handleInvalidIssuerResponseException(
+            InvalidIssuerResponseException ex,
+            ServerHttpRequest request
+    ) {
+        return errors.handleWith(
+                ex, request,
+                GlobalErrorTypes.INVALID_ISSUER_RESPONSE.getCode(),
+                "Invalid issuer response",
+                HttpStatus.BAD_GATEWAY,
                 ex.getMessage()
         );
     }

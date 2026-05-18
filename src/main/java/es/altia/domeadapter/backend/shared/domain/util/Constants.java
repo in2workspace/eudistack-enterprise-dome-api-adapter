@@ -25,5 +25,7 @@ public class Constants {
     public static final String UTF_8                     = "UTF-8";
 
     public static final String MANDATOR_FIELD = "mandator";
+    public static final String MANDATEE_FIELD = "mandatee";
+    public static final String EMAIL_FIELD = "email";
     public static final String ORGANIZATION_IDENTIFIER_FIELD = "organizationIdentifier";
 }

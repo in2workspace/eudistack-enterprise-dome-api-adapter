@@ -16,7 +16,6 @@ import es.altia.domeadapter.backend.shared.domain.model.dto.credential.lear.empl
 import es.altia.domeadapter.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.altia.domeadapter.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import es.altia.domeadapter.backend.shared.domain.model.enums.ActionType;
-import es.altia.domeadapter.backend.shared.domain.service.M2MTokenService;
 import es.altia.domeadapter.backend.shared.domain.service.ProcedureRetryService;
 import es.altia.domeadapter.backend.shared.domain.util.JwtUtils;
 import jakarta.validation.Validator;
@@ -51,6 +50,7 @@ public class TranslateLegacyIssuanceWorkflow {
     private Mono<Void> validateIssuanceRequest(PreSubmittedCredentialDataRequest request, String idToken) {
         return validateInitialIssuanceRequest(request)
                 .then(Mono.defer(() -> validateLabelCredentialIdToken(request, idToken)))
+                .then(Mono.defer(() -> validateLabelCredentialEmail(request)))
                 .then(Mono.defer(() -> validateCredentialPayload(request)));
     }
 
@@ -81,13 +81,16 @@ public class TranslateLegacyIssuanceWorkflow {
         return Mono.empty();
     }
 
-    private Mono<Void> validateCredentialPayload(PreSubmittedCredentialDataRequest request) {
-        try {
-            validatePayload(request);
-            return Mono.empty();
-        } catch (InvalidCredentialFormatException e) {
-            return Mono.error(e);
+    private Mono<Void> validateLabelCredentialEmail(PreSubmittedCredentialDataRequest request) {
+        if (isLabelCredentialSchema(request.schema()) && !hasText(request.email())) {
+            return Mono.error(new MissingEmailOwnerException("Email is required for Label credential issuance."));
         }
+
+        return Mono.empty();
+    }
+
+    private Mono<Void> validateCredentialPayload(PreSubmittedCredentialDataRequest request) {
+        return Mono.fromRunnable(() -> validatePayload(request));
     }
 
     private Mono<IssuanceResponse> executeValidatedIssuance(PreSubmittedCredentialDataRequest request, String bearerToken, String idToken) {
@@ -108,7 +111,7 @@ public class TranslateLegacyIssuanceWorkflow {
 
                     IssuerPreSubmittedCredentialDataRequest issuerRequest =
                             IssuerPreSubmittedCredentialDataRequest.builder()
-                                    .schema(translateSchema(request.schema()))
+                                    .schema(translatedSchema)
                                     .payload(request.payload())
                                     .operationMode(request.operationMode())
                                     .email(email)
@@ -121,8 +124,7 @@ public class TranslateLegacyIssuanceWorkflow {
                                     return Mono.just(response);
                                 }
 
-                                return handleLabelCredentialPostResponse(request, response.signedCredential(), email)
-                                        .thenReturn(response);
+                                return handleLabelCredentialResponse(request, response, email);
                             });
                 });
     }
@@ -237,7 +239,7 @@ public class TranslateLegacyIssuanceWorkflow {
             }
 
             return requireEmailFromPayloadMandator(
-                    request.payload().path("mandator").path("email"),
+                    request.payload().path("mandator").path(EMAIL_FIELD),
                     "Mandator email is required for LEAR Machine credential issuance."
             );
         }
@@ -248,7 +250,7 @@ public class TranslateLegacyIssuanceWorkflow {
             }
 
             return requireEmailFromPayloadMandator(
-                    request.payload().path("mandatee").path("email"),
+                    request.payload().path(MANDATEE_FIELD).path(EMAIL_FIELD),
                     "Mandatee email is required for LEAR Employee credential issuance."
             );
         }
@@ -279,21 +281,29 @@ public class TranslateLegacyIssuanceWorkflow {
         return value != null && !value.isBlank();
     }
 
-    private Mono<Void> handleLabelCredentialPostResponse(
+    private Mono<IssuanceResponse> handleLabelCredentialResponse(
+            PreSubmittedCredentialDataRequest request,
+            IssuanceResponse response,
+            String email
+    ) {
+        String signedCredential = response.signedCredential();
+
+        if (signedCredential == null || signedCredential.isBlank()) {
+            return Mono.error(new InvalidCredentialFormatException("Issuer returned empty signed credential"));
+        }
+
+        fireLabelCredentialUpload(request, signedCredential, email);
+
+        return Mono.just(response);
+    }
+
+    private void fireLabelCredentialUpload(
             PreSubmittedCredentialDataRequest request,
             String signedCredential,
             String email
     ) {
-
-        if (signedCredential == null || signedCredential.isBlank()) {
-            log.error("[ISSUANCE] Issuer returned empty credential");
-            return Mono.empty();
-        }
-
         UUID credentialId = jwtUtils.extractCredentialId(signedCredential);
         String productSpecificationId = jwtUtils.extractCredentialSubjectId(signedCredential);
-
-        log.info("[ISSUANCE] Label credential issued with id={} productSpecId={}", credentialId, productSpecificationId);
 
         LabelCredentialDeliveryPayload payload = LabelCredentialDeliveryPayload.builder()
                 .responseUri(request.responseUri())
@@ -302,9 +312,6 @@ public class TranslateLegacyIssuanceWorkflow {
                 .email(email)
                 .signedCredential(signedCredential)
                 .build();
-
-        log.info("[ISSUANCE] Firing delivery pipeline for label credential with credentialId={} productSpecId={}",
-                credentialId, productSpecificationId);
 
         procedureRetryService
                 .handleInitialAction(credentialId, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, payload)
@@ -317,7 +324,5 @@ public class TranslateLegacyIssuanceWorkflow {
                                 e
                         )
                 );
-
-        return Mono.empty();
     }
 }

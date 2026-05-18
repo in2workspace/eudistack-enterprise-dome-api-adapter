@@ -4,13 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import es.altia.domeadapter.backend.issuance.domain.service.IssuerCoreClientPort;
+import es.altia.domeadapter.backend.shared.domain.exception.InvalidCredentialFormatException;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuerPreSubmittedCredentialDataRequest;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuanceResponse;
 import es.altia.domeadapter.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
 import es.altia.domeadapter.backend.shared.domain.exception.UnsupportedCredentialSchemaException;
 import es.altia.domeadapter.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import es.altia.domeadapter.backend.shared.domain.model.enums.ActionType;
-import es.altia.domeadapter.backend.shared.domain.service.M2MTokenService;
 import es.altia.domeadapter.backend.shared.domain.service.ProcedureRetryService;
 import es.altia.domeadapter.backend.shared.domain.util.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,35 +106,39 @@ class TranslateLegacyIssuanceWorkflowTest {
     }
 
     @Test
-    void execute_labelCredential_nullSignedCredential_skipsDeliveryPipeline() {
-        when(issuerCorClientPort.forward(any(), anyString(), anyString()))
-                .thenReturn(Mono.just(IssuanceResponse.builder().signedCredential(null).build()));
+    void execute_delivery_labelCredential_noExplicit_usesDefaultLabelDelivery() {
+        String signedCredential = "header.payload.sig";
+        UUID credentialId = UUID.randomUUID();
+
+        ArgumentCaptor<IssuerPreSubmittedCredentialDataRequest> captor =
+                ArgumentCaptor.forClass(IssuerPreSubmittedCredentialDataRequest.class);
+
+        when(issuerCorClientPort.forward(captor.capture(), anyString(), anyString()))
+                .thenReturn(Mono.just(IssuanceResponse.builder().signedCredential(signedCredential).build()));
+        when(jwtUtils.extractCredentialId(signedCredential)).thenReturn(credentialId);
+        when(jwtUtils.extractCredentialSubjectId(signedCredential)).thenReturn("https://example.com/product/123");
+        when(procedureRetryService.handleInitialAction(any(), any(), any())).thenReturn(Mono.empty());
 
         StepVerifier.create(workflow.execute(buildRequest("gx:LabelCredential", null), "token", "idToken"))
                 .expectNextCount(1)
                 .verifyComplete();
 
-        verifyNoInteractions(procedureRetryService, jwtUtils);
-    }
-
-    @Test
-    void execute_labelCredential_blankSignedCredential_skipsDeliveryPipeline() {
-        when(issuerCorClientPort.forward(any(), anyString(), anyString()))
-                .thenReturn(Mono.just(IssuanceResponse.builder().signedCredential("  ").build()));
-
-        StepVerifier.create(workflow.execute(buildRequest("gx:LabelCredential", null), "token", "idToken"))
-                .expectNextCount(1)
-                .verifyComplete();
-
-        verifyNoInteractions(procedureRetryService, jwtUtils);
+        assertThat(captor.getValue().delivery()).isEqualTo("email,direct");
     }
 
     @Test
     void execute_schemaMapping_labelCredential_mapsToExternal() {
+        String signedCredential = "header.payload.sig";
+        UUID credentialId = UUID.randomUUID();
+
         ArgumentCaptor<IssuerPreSubmittedCredentialDataRequest> captor =
                 ArgumentCaptor.forClass(IssuerPreSubmittedCredentialDataRequest.class);
+
         when(issuerCorClientPort.forward(captor.capture(), anyString(), anyString()))
-                .thenReturn(Mono.just(IssuanceResponse.builder().build()));
+                .thenReturn(Mono.just(IssuanceResponse.builder().signedCredential(signedCredential).build()));
+        when(jwtUtils.extractCredentialId(signedCredential)).thenReturn(credentialId);
+        when(jwtUtils.extractCredentialSubjectId(signedCredential)).thenReturn("https://example.com/product/123");
+        when(procedureRetryService.handleInitialAction(any(), any(), any())).thenReturn(Mono.empty());
 
         StepVerifier.create(workflow.execute(buildRequest("gx:LabelCredential", null), "token", "idToken"))
                 .expectNextCount(1)
@@ -142,6 +146,29 @@ class TranslateLegacyIssuanceWorkflowTest {
 
         assertThat(captor.getValue().schema()).isEqualTo("gx.labelcredential.w3c.2");
     }
+
+    @Test
+    void execute_labelCredential_nullSignedCredential_returnsInvalidCredentialFormatException() {
+        when(issuerCorClientPort.forward(any(), anyString(), anyString()))
+                .thenReturn(Mono.just(IssuanceResponse.builder().signedCredential(null).build()));
+
+        StepVerifier.create(workflow.execute(buildRequest("gx:LabelCredential", null), "token", "idToken"))
+                .verifyError(InvalidCredentialFormatException.class);
+
+        verifyNoInteractions(procedureRetryService, jwtUtils);
+    }
+
+    @Test
+    void execute_labelCredential_blankSignedCredential_returnsInvalidCredentialFormatException() {
+        when(issuerCorClientPort.forward(any(), anyString(), anyString()))
+                .thenReturn(Mono.just(IssuanceResponse.builder().signedCredential("  ").build()));
+
+        StepVerifier.create(workflow.execute(buildRequest("gx:LabelCredential", null), "token", "idToken"))
+                .verifyError(InvalidCredentialFormatException.class);
+
+        verifyNoInteractions(procedureRetryService, jwtUtils);
+    }
+
 
     @Test
     void execute_schemaMapping_learCredentialEmployee_mapsToExternal() {
@@ -161,20 +188,6 @@ class TranslateLegacyIssuanceWorkflowTest {
     void execute_schemaMapping_unknownSchema_throwsUnsupportedSchemaException() {
         StepVerifier.create(workflow.execute(buildRequest("customSchema", null), "token", "idToken"))
                 .verifyError(UnsupportedCredentialSchemaException.class);
-    }
-
-    @Test
-    void execute_delivery_labelCredential_noExplicit_usesDefaultLabelDelivery() {
-        ArgumentCaptor<IssuerPreSubmittedCredentialDataRequest> captor =
-                ArgumentCaptor.forClass(IssuerPreSubmittedCredentialDataRequest.class);
-        when(issuerCorClientPort.forward(captor.capture(), anyString(), anyString()))
-                .thenReturn(Mono.just(IssuanceResponse.builder().build()));
-
-        StepVerifier.create(workflow.execute(buildRequest("gx:LabelCredential", null), "token", "idToken"))
-                .expectNextCount(1)
-                .verifyComplete();
-
-        assertThat(captor.getValue().delivery()).isEqualTo("email,direct");
     }
 
     @Test
