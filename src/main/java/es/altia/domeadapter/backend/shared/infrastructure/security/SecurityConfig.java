@@ -15,7 +15,10 @@ import org.springframework.security.web.server.authentication.AuthenticationWebF
 import org.springframework.security.web.server.authentication.ServerAuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 
-import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.*;
+import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.HEALTH_PATH;
+import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.PROMETHEUS_PATH;
+import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.SPRINGDOC_PATH;
+import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.TRANSLATE_LEGACY_PATH;
 
 @Slf4j
 @Configuration
@@ -35,7 +38,6 @@ public class SecurityConfig {
     @Bean
     public AuthenticationWebFilter customAuthenticationWebFilter(ProblemAuthenticationEntryPoint entryPoint) {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
-        log.debug("customAuthenticationWebFilter - inside");
 
         authenticationWebFilter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(TRANSLATE_LEGACY_PATH)
