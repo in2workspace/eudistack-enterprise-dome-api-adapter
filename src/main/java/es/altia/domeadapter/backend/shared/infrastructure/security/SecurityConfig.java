@@ -14,10 +14,11 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.security.web.server.authentication.ServerAuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
+
 import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.HEALTH_PATH;
-import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.ISSUANCES_PATH;
 import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.PROMETHEUS_PATH;
 import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.SPRINGDOC_PATH;
+import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.TRANSLATE_LEGACY_PATH;
 
 @Slf4j
 @Configuration
@@ -37,10 +38,9 @@ public class SecurityConfig {
     @Bean
     public AuthenticationWebFilter customAuthenticationWebFilter(ProblemAuthenticationEntryPoint entryPoint) {
         AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(customAuthenticationManager);
-        log.debug("customAuthenticationWebFilter - inside");
 
         authenticationWebFilter.setRequiresAuthenticationMatcher(
-                ServerWebExchangeMatchers.pathMatchers(ISSUANCES_PATH)
+                ServerWebExchangeMatchers.pathMatchers(TRANSLATE_LEGACY_PATH)
         );
 
         authenticationWebFilter.setServerAuthenticationConverter(new DualTokenServerAuthenticationConverter());
@@ -54,13 +54,12 @@ public class SecurityConfig {
             ProblemAuthenticationEntryPoint entryPoint,
             ProblemAccessDeniedHandler deniedHandler
     ) {
-        log.debug("filterChain - inside");
 
         http
                 .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.GET, HEALTH_PATH, PROMETHEUS_PATH, SPRINGDOC_PATH).permitAll()
-                        .pathMatchers(HttpMethod.POST, ISSUANCES_PATH).authenticated()
+                        .pathMatchers(HttpMethod.POST, TRANSLATE_LEGACY_PATH).authenticated()
                         .anyExchange().denyAll()
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
@@ -70,7 +69,6 @@ public class SecurityConfig {
                         .accessDeniedHandler(deniedHandler)
                 );
 
-        log.debug("filterChain - build");
         return http.build();
     }
 }

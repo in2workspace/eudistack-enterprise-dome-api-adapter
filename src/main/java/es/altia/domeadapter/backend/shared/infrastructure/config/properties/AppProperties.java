@@ -14,6 +14,7 @@ public record AppProperties(
         @NotBlank @URL String issuerUrl,
         @NotBlank String defaultLang,
         @NotBlank String configSource,
+        boolean issuerDomeAdapterEnabled,
         @Valid Mail mail
 ) {
     public record Mail(

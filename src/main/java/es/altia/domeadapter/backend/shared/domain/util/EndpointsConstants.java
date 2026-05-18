@@ -9,6 +9,7 @@ public class EndpointsConstants {
     public static final String WELL_KNOWN_BASE_PATH                             = "/.well-known";
     public static final String AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH    = WELL_KNOWN_BASE_PATH + "/openid-configuration";
 
+    public static final String TRANSLATE_LEGACY_PATH       = "/vci/v1/issuances";
     public static final String ISSUANCES_PATH       = "/api/v1/issuances";
     public static final String HEALTH_PATH          = "/health";
     public static final String PROMETHEUS_PATH      = "/prometheus";

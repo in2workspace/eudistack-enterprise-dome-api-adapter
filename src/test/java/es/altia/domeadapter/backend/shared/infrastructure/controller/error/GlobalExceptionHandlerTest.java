@@ -1,5 +1,6 @@
 package es.altia.domeadapter.backend.shared.infrastructure.controller.error;
 
+import es.altia.domeadapter.backend.shared.domain.exception.InvalidIssuerResponseException;
 import es.altia.domeadapter.backend.shared.domain.exception.JWTParsingException;
 import es.altia.domeadapter.backend.shared.domain.exception.JWTVerificationException;
 import es.altia.domeadapter.backend.shared.domain.exception.ProofValidationException;
@@ -207,6 +208,35 @@ class GlobalExceptionHandlerTest {
                 "JWT parsing error",
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "The provided JWT is invalid or can't be parsed."
+        );
+    }
+
+    @Test
+    void shouldHandleInvalidIssuerResponseException() {
+        InvalidIssuerResponseException exception = new InvalidIssuerResponseException("Issuer returned empty signed credential");
+
+        when(errors.handleWith(
+                exception,
+                request,
+                GlobalErrorTypes.INVALID_ISSUER_RESPONSE.getCode(),
+                "Invalid issuer response",
+                HttpStatus.BAD_GATEWAY,
+                exception.getMessage()
+        )).thenReturn(Mono.just(errorMessage));
+
+        Mono<GlobalErrorMessage> result = handler.handleInvalidIssuerResponseException(exception, request);
+
+        StepVerifier.create(result)
+                .assertNext(response -> assertThat(response).isSameAs(errorMessage))
+                .verifyComplete();
+
+        verify(errors).handleWith(
+                exception,
+                request,
+                GlobalErrorTypes.INVALID_ISSUER_RESPONSE.getCode(),
+                "Invalid issuer response",
+                HttpStatus.BAD_GATEWAY,
+                exception.getMessage()
         );
     }
 }

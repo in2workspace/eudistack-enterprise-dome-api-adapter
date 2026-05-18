@@ -59,7 +59,7 @@ class CustomAuthenticationManagerTest {
         );
 
         lenient().when(appConfig.getVerifierUrl()).thenReturn(VERIFIER_URL);
-        lenient().when(appConfig.getExternalIssuerUrl()).thenReturn(EXTERNAL_ISSUER_URL);
+        lenient().when(appConfig.getIssuerUrl()).thenReturn(EXTERNAL_ISSUER_URL);
     }
 
     @Test
@@ -105,7 +105,7 @@ class CustomAuthenticationManagerTest {
     }
 
     @Test
-    void authenticateShouldAcceptVerifierTokenWhenVcTypeContainsLearCredentialMachineW3c() {
+    void authenticateShouldAcceptVerifierTokenWhenVcTypeStartsWithLearCredentialMachineW3c() {
         String principal = "did:example:machine-1";
         String accessToken = buildJwt(Map.of(
                 "iss", VERIFIER_URL,
@@ -113,7 +113,7 @@ class CustomAuthenticationManagerTest {
                 "vc", Map.of(
                         "type", new String[]{
                                 "VerifiableCredential",
-                                "https://trustframework.example/learcredential.machine.w3c"
+                                "learcredential.machine.w3c.1"
                         }
                 )
         ));
@@ -131,7 +131,7 @@ class CustomAuthenticationManagerTest {
     }
 
     @Test
-    void authenticateShouldFailWhenVerifierTokenDoesNotContainVcClaim() {
+    void authenticateShouldFailWhenVerifierTokenHasNeitherVcNorCredentialType() {
         String accessToken = buildJwt(Map.of(
                 "iss", VERIFIER_URL,
                 "sub", "did:example:machine-1"
@@ -147,7 +147,66 @@ class CustomAuthenticationManagerTest {
                 .expectErrorSatisfies(error -> {
                     assertThat(error)
                             .isInstanceOf(BadCredentialsException.class)
-                            .hasMessage("The 'vc' claim is required but not present.");
+                            .hasMessage("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.");
+                })
+                .verify();
+    }
+
+    @Test
+    void authenticateShouldAcceptVerifierTokenWithCredentialTypeLearCredentialMachine() {
+        String principal = "did:example:machine-2";
+        String accessToken = buildJwt(Map.of(
+                "iss", VERIFIER_URL,
+                "sub", principal,
+                "credential_type", "LEARCredentialMachine"
+        ));
+
+        Authentication authentication = new TestingAuthenticationToken("ignored", accessToken);
+
+        when(verifierService.verifyToken(accessToken)).thenReturn(Mono.empty());
+        when(jwtService.resolvePrincipal(any(Jwt.class))).thenReturn(principal);
+
+        StepVerifier.create(authenticationManager.authenticate(authentication))
+                .assertNext(auth -> assertThat(auth.getName()).isEqualTo(principal))
+                .verifyComplete();
+    }
+
+    @Test
+    void authenticateShouldAcceptVerifierTokenWithVersionedLearCredentialMachineW3cType() {
+        String principal = "did:example:machine-3";
+        String accessToken = buildJwt(Map.of(
+                "iss", VERIFIER_URL,
+                "sub", principal,
+                "credential_type", "learcredential.machine.w3c.3"
+        ));
+
+        Authentication authentication = new TestingAuthenticationToken("ignored", accessToken);
+
+        when(verifierService.verifyToken(accessToken)).thenReturn(Mono.empty());
+        when(jwtService.resolvePrincipal(any(Jwt.class))).thenReturn(principal);
+
+        StepVerifier.create(authenticationManager.authenticate(authentication))
+                .assertNext(auth -> assertThat(auth.getName()).isEqualTo(principal))
+                .verifyComplete();
+    }
+
+    @Test
+    void authenticateShouldFailWhenVerifierTokenHasUnrecognizedCredentialType() {
+        String accessToken = buildJwt(Map.of(
+                "iss", VERIFIER_URL,
+                "sub", "did:example:machine-1",
+                "credential_type", "UnknownCredentialType"
+        ));
+
+        Authentication authentication = new TestingAuthenticationToken("ignored", accessToken);
+
+        when(verifierService.verifyToken(accessToken)).thenReturn(Mono.empty());
+
+        StepVerifier.create(authenticationManager.authenticate(authentication))
+                .expectErrorSatisfies(error -> {
+                    assertThat(error)
+                            .isInstanceOf(BadCredentialsException.class)
+                            .hasMessage("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.");
                 })
                 .verify();
     }
@@ -175,7 +234,7 @@ class CustomAuthenticationManagerTest {
                 .expectErrorSatisfies(error -> {
                     assertThat(error)
                             .isInstanceOf(BadCredentialsException.class)
-                            .hasMessage("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.");
+                            .hasMessage("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.*");
                 })
                 .verify();
     }

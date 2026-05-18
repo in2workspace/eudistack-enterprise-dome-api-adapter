@@ -46,7 +46,7 @@ public class WebClientConfig {
     public WebClient issuerWebClient() {
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(HttpClient.create(connectionProvider)
-                        .baseUrl(appConfig.getExternalIssuerUrl())
+                        .baseUrl(appConfig.getIssuerUrl())
                         .followRedirect(false))
                 )
                 .build();

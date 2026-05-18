@@ -42,7 +42,7 @@ public class AppConfig {
     }
 
     /** URL of the external issuer — used to forward requests and to validate issuer-signed tokens. */
-    public String getExternalIssuerUrl() {
+    public String getIssuerUrl() {
         return configAdapter.getConfiguration(appProperties.issuerUrl());
     }
 
@@ -72,6 +72,10 @@ public class AppConfig {
 
     public String getLabelUploadMarketplaceEmail() {
         return retryProperties.labelUpload().marketplaceEmail();
+    }
+
+    public boolean isIssuerDomeAdapterEnabled() {
+        return appProperties.issuerDomeAdapterEnabled();
     }
 
     public List<String> getExternalCorsAllowedOrigins() {

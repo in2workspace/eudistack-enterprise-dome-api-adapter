@@ -68,6 +68,7 @@ app:
   issuer-url: ${APP_ISSUER_URL:}
   default-lang: ${APP_DEFAULT_LANG:en}
   config-source: ${APP_CONFIG_SOURCE:yaml}
+  issuer-dome-adapter-enabled: ${ISSUER_DOME_ADAPTER_ENABLED:false}
   mail:
     from: ${APP_MAIL_FROM:no-reply@example.com}
 

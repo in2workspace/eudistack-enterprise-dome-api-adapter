@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 
 @Builder
-public record ExternalPreSubmittedCredentialDataRequest(
+public record IssuerPreSubmittedCredentialDataRequest(
         @JsonProperty(value = "schema", required = true) String schema,
         @JsonProperty(value = "payload", required = true) JsonNode payload,
         @JsonProperty("operation_mode") String operationMode,
@@ -15,7 +15,7 @@ public record ExternalPreSubmittedCredentialDataRequest(
         @JsonProperty("email") String email,
         @JsonProperty("delivery") String delivery
 ) {
-        public ExternalPreSubmittedCredentialDataRequest {
+        public IssuerPreSubmittedCredentialDataRequest {
                 if (delivery == null || delivery.isBlank()) {
                         delivery = "email,direct";
                 }

@@ -6,6 +6,8 @@ public class Constants {
         throw new IllegalStateException("Utility class");
     }
 
+    public static final String JWT_VC_JSON = "jwt_vc_json";
+    public static final String SYNC = "S";
     public static final String DID_KEY                          = "did:key:";
     public static final String CONTENT_TYPE                     = "Content-Type";
     public static final String CONTENT_TYPE_APPLICATION_JSON     = "application/json";
@@ -21,4 +23,9 @@ public class Constants {
     public static final String CREDENTIAL_ID             = "credentialId";
     public static final String MAIL_ERROR_COMMUNICATION_EXCEPTION_MESSAGE = "Error during communication with the mail server";
     public static final String UTF_8                     = "UTF-8";
+
+    public static final String MANDATOR_FIELD = "mandator";
+    public static final String MANDATEE_FIELD = "mandatee";
+    public static final String EMAIL_FIELD = "email";
+    public static final String ORGANIZATION_IDENTIFIER_FIELD = "organizationIdentifier";
 }
