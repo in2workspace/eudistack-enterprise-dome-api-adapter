@@ -33,8 +33,7 @@ public record LEARCredentialEmployee(
                     @JsonProperty("employeeId") String employeeId,
                     @JsonProperty("email") String email,
                     @JsonProperty("firstName") @JsonAlias("first_name") String firstName,
-                    @JsonProperty("lastName") @JsonAlias("last_name") String lastName,
-                    @JsonProperty("mobile_phone") String mobilePhone
+                    @JsonProperty("lastName") @JsonAlias("last_name") String lastName
             ) {}
 
             @Builder
