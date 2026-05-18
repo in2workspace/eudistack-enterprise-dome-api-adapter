@@ -222,12 +222,13 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
         if (typeNode == null || !typeNode.isArray() || StreamSupport.stream(typeNode.spliterator(), false)
                 .map(JsonNode::asText)
                 .noneMatch(this::isAllowedCredentialType)) {
-            log.error("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.");
-            throw new BadCredentialsException("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.");
+            log.error("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.*");
+            throw new BadCredentialsException("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.*");
         }
     }
 
     private boolean isAllowedCredentialType(String type) {
-        return "LEARCredentialMachine".equals(type) || type.contains("learcredential.machine.w3c");
+        return "LEARCredentialMachine".equals(type)
+                || type.startsWith("learcredential.machine.w3c.");
     }
 }

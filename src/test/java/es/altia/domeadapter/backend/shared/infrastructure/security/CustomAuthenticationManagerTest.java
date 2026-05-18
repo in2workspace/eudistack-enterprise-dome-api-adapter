@@ -105,7 +105,7 @@ class CustomAuthenticationManagerTest {
     }
 
     @Test
-    void authenticateShouldAcceptVerifierTokenWhenVcTypeContainsLearCredentialMachineW3c() {
+    void authenticateShouldAcceptVerifierTokenWhenVcTypeStartsWithLearCredentialMachineW3c() {
         String principal = "did:example:machine-1";
         String accessToken = buildJwt(Map.of(
                 "iss", VERIFIER_URL,
@@ -113,7 +113,7 @@ class CustomAuthenticationManagerTest {
                 "vc", Map.of(
                         "type", new String[]{
                                 "VerifiableCredential",
-                                "https://trustframework.example/learcredential.machine.w3c"
+                                "learcredential.machine.w3c.1"
                         }
                 )
         ));
@@ -234,7 +234,7 @@ class CustomAuthenticationManagerTest {
                 .expectErrorSatisfies(error -> {
                     assertThat(error)
                             .isInstanceOf(BadCredentialsException.class)
-                            .hasMessage("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.");
+                            .hasMessage("Credential type required: LEARCredentialMachine or learcredential.machine.w3c.*");
                 })
                 .verify();
     }
