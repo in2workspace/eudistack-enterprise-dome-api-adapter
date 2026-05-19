@@ -16,6 +16,7 @@ import es.altia.domeadapter.backend.shared.domain.model.dto.credential.lear.empl
 import es.altia.domeadapter.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.altia.domeadapter.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import es.altia.domeadapter.backend.shared.domain.model.enums.ActionType;
+import es.altia.domeadapter.backend.shared.domain.service.M2MTokenService;
 import es.altia.domeadapter.backend.shared.domain.service.ProcedureRetryService;
 import es.altia.domeadapter.backend.shared.domain.util.JwtUtils;
 import jakarta.validation.Validator;
@@ -90,6 +91,7 @@ public class TranslateLegacyIssuanceWorkflow {
     }
 
     private Mono<Void> validateCredentialPayload(PreSubmittedCredentialDataRequest request) {
+        log.info("validateCredentialPayload");
         return Mono.fromRunnable(() -> validatePayload(request));
     }
 
@@ -124,7 +126,7 @@ public class TranslateLegacyIssuanceWorkflow {
                                     return Mono.just(response);
                                 }
 
-                                return handleLabelCredentialResponse(request, response, email);
+                                return handleLabelCredentialResponse(request, response, email, idToken);
                             });
                 });
     }
@@ -284,7 +286,8 @@ public class TranslateLegacyIssuanceWorkflow {
     private Mono<IssuanceResponse> handleLabelCredentialResponse(
             PreSubmittedCredentialDataRequest request,
             IssuanceResponse response,
-            String email
+            String email,
+            String idToken
     ) {
         String signedCredential = response.signedCredential();
 
@@ -292,18 +295,19 @@ public class TranslateLegacyIssuanceWorkflow {
             return Mono.error(new InvalidCredentialFormatException("Issuer returned empty signed credential"));
         }
 
-        fireLabelCredentialUpload(request, signedCredential, email);
-
+        fireLabelCredentialUpload(request, signedCredential, email, idToken);
         return Mono.just(response);
     }
 
     private void fireLabelCredentialUpload(
             PreSubmittedCredentialDataRequest request,
             String signedCredential,
-            String email
+            String email,
+            String idToken
     ) {
         UUID credentialId = jwtUtils.extractCredentialId(signedCredential);
         String productSpecificationId = jwtUtils.extractCredentialSubjectId(signedCredential);
+        String issuedBy = jwtUtils.extractSubject(idToken);
 
         LabelCredentialDeliveryPayload payload = LabelCredentialDeliveryPayload.builder()
                 .responseUri(request.responseUri())
@@ -311,6 +315,7 @@ public class TranslateLegacyIssuanceWorkflow {
                 .productSpecificationId(productSpecificationId)
                 .email(email)
                 .signedCredential(signedCredential)
+                .issuedBy(issuedBy)
                 .build();
 
         procedureRetryService

@@ -103,6 +103,21 @@ public class JwtUtils {
         }
     }
 
+    public String extractSubject(String jwt) {
+        try {
+            JsonNode claims = objectMapper.readTree(decodePayload(jwt));
+            JsonNode subNode = claims.get("sub");
+            if (subNode == null || subNode.isNull() || subNode.asText().isBlank()) {
+                log.warn("[JWT] ID token does not contain a 'sub' claim");
+                return null;
+            }
+            return subNode.asText();
+        } catch (Exception e) {
+            log.warn("[JWT] Could not extract 'sub' from ID token: {}", e.getMessage());
+            return null;
+        }
+    }
+
     private String extractCredentialSubjectIdFromNode(JsonNode node) {
         JsonNode csNode = node.get("credentialSubject");
         if (csNode == null || csNode.isNull()) {

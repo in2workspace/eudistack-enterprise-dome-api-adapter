@@ -43,4 +43,10 @@ public class ProcedureRetry {
 
     @Column("payload")
     private String payload;
+
+    @Column("last_error")
+    private String lastError;
+
+    @Column("issued_by")
+    private String issuedBy;
 }

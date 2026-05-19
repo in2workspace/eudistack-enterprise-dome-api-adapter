@@ -236,13 +236,13 @@ class ProcedureRetryServiceImplTest {
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(Mono.error(new ResponseUriDeliveryException("not found", 404, RESPONSE_URI, CRED_ID)));
-        when(procedureRetryRepository.incrementAttemptCount(eq(CREDENTIAL_UUID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any(Instant.class)))
+        when(procedureRetryRepository.incrementAttemptCount(eq(CREDENTIAL_UUID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any(Instant.class), nullable(String.class)))
                 .thenReturn(Mono.just(1));
 
         StepVerifier.create(service.processPendingRetries())
                 .verifyComplete();
 
-        verify(procedureRetryRepository).incrementAttemptCount(eq(CREDENTIAL_UUID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any(Instant.class));
+        verify(procedureRetryRepository).incrementAttemptCount(eq(CREDENTIAL_UUID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any(Instant.class), nullable(String.class));
         verify(procedureRetryRepository, never()).markAsCompleted(any(), any());
     }
 
@@ -314,6 +314,7 @@ class ProcedureRetryServiceImplTest {
                 .productSpecificationId(PROD_SPEC_ID)
                 .email(PROVIDER_EMAIL)
                 .signedCredential(SIGNED_VC)
+                .issuedBy("did:example:issuer-test")
                 .build();
     }
 

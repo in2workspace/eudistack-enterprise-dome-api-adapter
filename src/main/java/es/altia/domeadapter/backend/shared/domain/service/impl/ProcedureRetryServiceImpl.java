@@ -44,7 +44,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     private final EmailService emailService;
     private final AppConfig appConfig;
 
-    private static final int INITIAL_RETRY_ATTEMPTS = 3;
+    private static final int INITIAL_RETRY_ATTEMPTS = 2;
     private static final Duration[] INITIAL_RETRY_DELAYS = {
             Duration.ofMinutes(2),
             Duration.ofMinutes(5),
@@ -52,6 +52,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     };
 
     private static final Duration EXHAUSTION_THRESHOLD = Duration.ofDays(14);
+    private static final int MAX_ERROR_LENGTH = 1000;
 
     // ──────────────────────────────────────────────────────────────────────
     // A. Initial Issuance Orchestration
@@ -76,7 +77,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                     log.error("[DELIVERY] Initial delivery failed after all retries for credId: {} - {}",
                             payload.credentialId(), e.getMessage());
 
-                    return createRetryRecord(credentialId, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, payload)
+                    return doCreateRetryRecord(credentialId, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, payload, e)
                             .then(sendInitialFailureNotificationSafely(payload.productSpecificationId(), payload.credentialId(), payload.email()));
                 });
     }
@@ -123,7 +124,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                 .onErrorResume(e -> {
                     log.warn("[SCHEDULER] Delivery failed for credential {}: {}",
                             retryRecord.getCredentialId(), e.getMessage(), e);
-                    return updateRetryAfterScheduledFailure(retryRecord);
+                    return updateRetryAfterScheduledFailure(retryRecord, e);
                 });
     }
 
@@ -159,6 +160,10 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
 
     @Override
     public Mono<Void> createRetryRecord(UUID credentialId, ActionType actionType, Object payload) {
+        return doCreateRetryRecord(credentialId, actionType, payload, null);
+    }
+
+    private Mono<Void> doCreateRetryRecord(UUID credentialId, ActionType actionType, Object payload, Throwable initialError) {
         log.debug("[RETRY] Creating retry record for credentialId={} actionType={}", credentialId, actionType);
 
         return Mono.fromCallable(() -> {
@@ -172,6 +177,8 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                                 .attemptCount(0)
                                 .firstFailureAt(Instant.now())
                                 .payload(payloadJson)
+                                .lastError(truncateError(initialError))
+                                .issuedBy(extractIssuedBy(actionType, payload))
                                 .build();
                     } catch (Exception e) {
                         log.error("[RETRY] Error serializing payload for credentialId={}: {}", credentialId, e.getMessage(), e);
@@ -351,11 +358,12 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     // Scheduler failure handling
     // ──────────────────────────────────────────────────────────────────────
 
-    private Mono<Void> updateRetryAfterScheduledFailure(ProcedureRetry retryRecord) {
+    private Mono<Void> updateRetryAfterScheduledFailure(ProcedureRetry retryRecord, Throwable error) {
         return procedureRetryRepository.incrementAttemptCount(
                         retryRecord.getCredentialId(),
                         retryRecord.getActionType(),
-                        Instant.now()
+                        Instant.now(),
+                        truncateError(error)
                 )
                 .doOnSuccess(rowsAffected -> log.info("[SCHEDULER] Incremented attempt count for credential {} (rows: {})",
                         retryRecord.getCredentialId(), rowsAffected))
@@ -451,6 +459,20 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                     }
                 })
                 .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private String extractIssuedBy(ActionType actionType, Object payload) {
+        return switch (actionType) {
+            case UPLOAD_LABEL_TO_RESPONSE_URI ->
+                    payload instanceof LabelCredentialDeliveryPayload p ? p.issuedBy() : null;
+        };
+    }
+
+    private String truncateError(Throwable error) {
+        if (error == null) return null;
+        String message = error.getMessage();
+        if (message == null) return error.getClass().getSimpleName();
+        return message.length() > MAX_ERROR_LENGTH ? message.substring(0, MAX_ERROR_LENGTH) : message;
     }
 
     private <T> T castPayload(Object payload, Class<T> expectedType) {
