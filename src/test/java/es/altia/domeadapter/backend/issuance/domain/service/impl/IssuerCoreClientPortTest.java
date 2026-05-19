@@ -1,8 +1,7 @@
-package es.altia.domeadapter.backend.issuance.domain.service;
+package es.altia.domeadapter.backend.issuance.domain.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import es.altia.domeadapter.backend.issuance.domain.service.impl.IssuerCoreClient;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuerPreSubmittedCredentialDataRequest;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuanceResponse;
 import org.junit.jupiter.api.BeforeEach;
