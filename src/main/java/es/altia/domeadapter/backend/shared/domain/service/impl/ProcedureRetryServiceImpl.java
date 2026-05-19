@@ -179,6 +179,8 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
                                 .payload(payloadJson)
                                 .lastError(truncateError(initialError))
                                 .issuedBy(extractIssuedBy(actionType, payload))
+                                .lastError(truncateError(initialError))
+                                .issuedBy(extractIssuedBy(actionType, payload))
                                 .build();
                     } catch (Exception e) {
                         log.error("[RETRY] Error serializing payload for credentialId={}: {}", credentialId, e.getMessage(), e);

@@ -16,7 +16,6 @@ import es.altia.domeadapter.backend.shared.domain.model.dto.credential.lear.empl
 import es.altia.domeadapter.backend.shared.domain.model.dto.credential.lear.machine.LEARCredentialMachine;
 import es.altia.domeadapter.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import es.altia.domeadapter.backend.shared.domain.model.enums.ActionType;
-import es.altia.domeadapter.backend.shared.domain.service.M2MTokenService;
 import es.altia.domeadapter.backend.shared.domain.service.ProcedureRetryService;
 import es.altia.domeadapter.backend.shared.domain.util.JwtUtils;
 import jakarta.validation.Validator;
