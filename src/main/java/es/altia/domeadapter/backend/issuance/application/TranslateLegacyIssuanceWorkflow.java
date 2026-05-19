@@ -91,7 +91,6 @@ public class TranslateLegacyIssuanceWorkflow {
     }
 
     private Mono<Void> validateCredentialPayload(PreSubmittedCredentialDataRequest request) {
-        log.info("validateCredentialPayload");
         return Mono.fromRunnable(() -> validatePayload(request));
     }
 
