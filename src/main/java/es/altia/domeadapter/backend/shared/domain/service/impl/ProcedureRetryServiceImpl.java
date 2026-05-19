@@ -44,7 +44,7 @@ public class ProcedureRetryServiceImpl implements ProcedureRetryService {
     private final EmailService emailService;
     private final AppConfig appConfig;
 
-    private static final int INITIAL_RETRY_ATTEMPTS = 2;
+    private static final int INITIAL_RETRY_ATTEMPTS = 3;
     private static final Duration[] INITIAL_RETRY_DELAYS = {
             Duration.ofMinutes(2),
             Duration.ofMinutes(5),
