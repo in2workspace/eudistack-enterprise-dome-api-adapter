@@ -35,7 +35,7 @@ public class LegacyIssuanceController {
             @RequestHeader(value = "X-ID-Token", required = false) String idToken,
             @RequestBody PreSubmittedCredentialDataRequest request
     ) {
-        if (!appConfig.isIssuerDomeAdapterEnabled()) {
+        if (!appConfig.isDomeAdapterEnabled()) {
             return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body("{\"message\":\"Endpoint not found\"}".getBytes()));

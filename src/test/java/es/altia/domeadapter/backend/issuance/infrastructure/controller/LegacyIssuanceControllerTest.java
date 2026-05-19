@@ -30,7 +30,7 @@ class LegacyIssuanceControllerTest {
     void setUp() {
         translateLegacyIssuanceWorkflow = mock(TranslateLegacyIssuanceWorkflow.class);
         appConfig = mock(AppConfig.class);
-        when(appConfig.isIssuerDomeAdapterEnabled()).thenReturn(true);
+        when(appConfig.isDomeAdapterEnabled()).thenReturn(true);
         webTestClient = WebTestClient.bindToController(
                 new LegacyIssuanceController(translateLegacyIssuanceWorkflow, appConfig, new ObjectMapper())
         ).build();
