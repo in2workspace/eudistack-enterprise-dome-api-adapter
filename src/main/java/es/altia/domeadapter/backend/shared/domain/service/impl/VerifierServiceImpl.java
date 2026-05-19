@@ -1,11 +1,11 @@
 package es.altia.domeadapter.backend.shared.domain.service.impl;
 
+import com.nimbusds.jose.jwk.*;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jwk.*;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import es.altia.domeadapter.backend.shared.domain.exception.JWTParsingException;

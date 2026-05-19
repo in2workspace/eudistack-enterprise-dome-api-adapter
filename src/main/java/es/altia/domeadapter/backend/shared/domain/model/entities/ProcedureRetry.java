@@ -1,8 +1,8 @@
 package es.altia.domeadapter.backend.shared.domain.model.entities;
 
+import lombok.*;
 import es.altia.domeadapter.backend.shared.domain.model.enums.ActionType;
 import es.altia.domeadapter.backend.shared.domain.model.enums.RetryStatus;
-import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;

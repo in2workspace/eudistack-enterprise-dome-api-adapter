@@ -1,5 +1,6 @@
 package es.altia.domeadapter.backend.shared.domain.service.impl;
 
+import java.util.*;
 import com.nimbusds.jose.Payload;
 import es.altia.domeadapter.backend.shared.domain.model.dto.VerifierOauth2AccessToken;
 import es.altia.domeadapter.backend.shared.domain.service.JWTService;
@@ -16,7 +17,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
 import java.util.stream.Collectors;
 
 import static es.altia.domeadapter.backend.shared.domain.util.Constants.*;

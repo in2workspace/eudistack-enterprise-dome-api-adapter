@@ -17,11 +17,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import static org.mockito.Mockito.*;
 import static es.altia.domeadapter.backend.shared.domain.util.Constants.CONTENT_TYPE;
 import static es.altia.domeadapter.backend.shared.domain.util.Constants.CONTENT_TYPE_APPLICATION_JSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 
 @ExtendWith(MockitoExtension.class)
