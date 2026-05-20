@@ -1,8 +1,7 @@
-package es.altia.domeadapter.backend.issuance.domain.service;
+package es.altia.domeadapter.backend.issuance.domain.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import es.altia.domeadapter.backend.issuance.domain.service.impl.IssuerCoreClient;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuerPreSubmittedCredentialDataRequest;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuanceResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,11 +24,10 @@ import reactor.test.StepVerifier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ExternalIssuanceServiceTest {
+class IssuerCoreClientTest {
 
     @Mock
     private ExchangeFunction exchangeFunction;

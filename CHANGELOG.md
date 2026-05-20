@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### [0.0.1] - 2026-05-19
+
+### Added
+- Added new `last_error` and `issued_by` columns for procedure retry table.
+
+### Changed
+- Changed the name of env var `ISSUER_DOME_ADAPTER_ENABLED` to `DOME_ADAPTER_ENABLED`.
+
 ## [0.0.0] - 2026-05-04
 
 ### Added

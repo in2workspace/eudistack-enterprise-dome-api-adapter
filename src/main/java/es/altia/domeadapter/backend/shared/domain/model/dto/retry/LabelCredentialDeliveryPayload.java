@@ -8,5 +8,6 @@ public record LabelCredentialDeliveryPayload(
         String credentialId,
         String productSpecificationId,
         String email,
-        String signedCredential
+        String signedCredential,
+        String issuedBy
 ) {}

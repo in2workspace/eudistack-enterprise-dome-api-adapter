@@ -1,9 +1,9 @@
 package es.altia.domeadapter.backend.shared.infrastructure.security;
 
+import org.springframework.security.authentication.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.*;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 

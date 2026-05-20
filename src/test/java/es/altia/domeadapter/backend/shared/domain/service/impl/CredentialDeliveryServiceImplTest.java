@@ -3,6 +3,8 @@ package es.altia.domeadapter.backend.shared.domain.service.impl;
 import es.altia.domeadapter.backend.shared.domain.exception.ResponseUriDeliveryException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
@@ -14,13 +16,12 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.net.URI;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CredentialDeliveryServiceImplTest {
 

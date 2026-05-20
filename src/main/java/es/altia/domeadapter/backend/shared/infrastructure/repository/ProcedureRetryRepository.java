@@ -26,14 +26,15 @@ public interface ProcedureRetryRepository extends ReactiveCrudRepository<Procedu
     @Modifying
     @Query("""
             INSERT INTO dome_adapter.procedure_retry
-                (id, credential_id, action_type, status, attempt_count, first_failure_at, payload)
+                (id, credential_id, action_type, status, attempt_count, first_failure_at, payload, last_error, issued_by)
             VALUES
                 (:#{#retry.id}, :#{#retry.credentialId}, :#{#retry.actionType}, :#{#retry.status},
-                 :#{#retry.attemptCount}, :#{#retry.firstFailureAt}, :#{#retry.payload})
+                 :#{#retry.attemptCount}, :#{#retry.firstFailureAt}, :#{#retry.payload}, :#{#retry.lastError}, :#{#retry.issuedBy})
             ON CONFLICT (credential_id, action_type)
             DO UPDATE SET
                 status = EXCLUDED.status,
-                payload = EXCLUDED.payload
+                payload = EXCLUDED.payload,
+                last_error = EXCLUDED.last_error
             """)
     Mono<Integer> upsert(ProcedureRetry retry);
 
@@ -41,15 +42,16 @@ public interface ProcedureRetryRepository extends ReactiveCrudRepository<Procedu
     @Query("""
             UPDATE dome_adapter.procedure_retry
             SET attempt_count = attempt_count + 1,
-                last_attempt_at = :lastAttemptAt
+                last_attempt_at = :lastAttemptAt,
+                last_error = :lastError
             WHERE credential_id = :credentialId AND action_type = :actionType
             """)
-    Mono<Integer> incrementAttemptCount(UUID credentialId, ActionType actionType, Instant lastAttemptAt);
+    Mono<Integer> incrementAttemptCount(UUID credentialId, ActionType actionType, Instant lastAttemptAt, String lastError);
 
     @Modifying
     @Query("""
             UPDATE dome_adapter.procedure_retry
-            SET status = 'COMPLETED'
+            SET status = 'COMPLETED', last_attempt_at = now()
             WHERE credential_id = :credentialId AND action_type = :actionType
             """)
     Mono<Integer> markAsCompleted(UUID credentialId, ActionType actionType);

@@ -124,7 +124,7 @@ public class TranslateLegacyIssuanceWorkflow {
                                     return Mono.just(response);
                                 }
 
-                                return handleLabelCredentialResponse(request, response, email);
+                                return handleLabelCredentialResponse(request, response, email, idToken);
                             });
                 });
     }
@@ -284,7 +284,8 @@ public class TranslateLegacyIssuanceWorkflow {
     private Mono<IssuanceResponse> handleLabelCredentialResponse(
             PreSubmittedCredentialDataRequest request,
             IssuanceResponse response,
-            String email
+            String email,
+            String idToken
     ) {
         String signedCredential = response.signedCredential();
 
@@ -292,18 +293,19 @@ public class TranslateLegacyIssuanceWorkflow {
             return Mono.error(new InvalidCredentialFormatException("Issuer returned empty signed credential"));
         }
 
-        fireLabelCredentialUpload(request, signedCredential, email);
-
+        fireLabelCredentialUpload(request, signedCredential, email, idToken);
         return Mono.just(response);
     }
 
     private void fireLabelCredentialUpload(
             PreSubmittedCredentialDataRequest request,
             String signedCredential,
-            String email
+            String email,
+            String idToken
     ) {
         UUID credentialId = jwtUtils.extractCredentialId(signedCredential);
         String productSpecificationId = jwtUtils.extractCredentialSubjectId(signedCredential);
+        String issuedBy = jwtUtils.extractSubject(idToken);
 
         LabelCredentialDeliveryPayload payload = LabelCredentialDeliveryPayload.builder()
                 .responseUri(request.responseUri())
@@ -311,6 +313,7 @@ public class TranslateLegacyIssuanceWorkflow {
                 .productSpecificationId(productSpecificationId)
                 .email(email)
                 .signedCredential(signedCredential)
+                .issuedBy(issuedBy)
                 .build();
 
         procedureRetryService

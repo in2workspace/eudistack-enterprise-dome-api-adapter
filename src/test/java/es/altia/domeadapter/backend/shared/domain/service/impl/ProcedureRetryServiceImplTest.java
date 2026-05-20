@@ -32,8 +32,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,11 +77,11 @@ class ProcedureRetryServiceImplTest {
         StepVerifier.create(service.createRetryRecord(CREDENTIAL_UUID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI, payload))
                 .verifyComplete();
 
-        verify(procedureRetryRepository).upsert(argThat(record ->
-                record.getCredentialId().equals(CREDENTIAL_UUID) &&
-                record.getActionType() == ActionType.UPLOAD_LABEL_TO_RESPONSE_URI &&
-                record.getStatus() == RetryStatus.PENDING &&
-                record.getAttemptCount() == 0
+        verify(procedureRetryRepository).upsert(argThat(retryRecord ->
+                retryRecord.getCredentialId().equals(CREDENTIAL_UUID) &&
+                        retryRecord.getActionType() == ActionType.UPLOAD_LABEL_TO_RESPONSE_URI &&
+                        retryRecord.getStatus() == RetryStatus.PENDING &&
+                        retryRecord.getAttemptCount() == 0
         ));
     }
 
@@ -125,10 +125,10 @@ class ProcedureRetryServiceImplTest {
     }
 
     @Test
-    void retryAction_pendingRecord_executesDeliveryAndMarksCompleted() throws Exception {
-        ProcedureRetry record = buildRetryRecord(RetryStatus.PENDING, 0, buildPayloadJson());
+    void retryAction_pendingRecord_executesDeliveryAndMarksCompleted() {
+        ProcedureRetry retryRecord = buildRetryRecord(RetryStatus.PENDING, 0, buildPayloadJson());
         when(procedureRetryRepository.findByCredentialIdAndActionType(CREDENTIAL_UUID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
-                .thenReturn(Mono.just(record));
+                .thenReturn(Mono.just(retryRecord));
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(Mono.just(ResponseUriDeliveryResult.success()));
@@ -160,10 +160,10 @@ class ProcedureRetryServiceImplTest {
     // ── markRetryAsExhausted ──────────────────────────────────────────────
 
     @Test
-    void markRetryAsExhausted_withOldRecords_marksThemAndSendsNotifications() throws Exception {
-        ProcedureRetry record = buildRetryRecord(RetryStatus.PENDING, 5, buildPayloadJson());
+    void markRetryAsExhausted_withOldRecords_marksThemAndSendsNotifications(){
+        ProcedureRetry retryRecord = buildRetryRecord(RetryStatus.PENDING, 5, buildPayloadJson());
         when(procedureRetryRepository.findPendingRecordsOlderThan(any(Instant.class)))
-                .thenReturn(Flux.just(record));
+                .thenReturn(Flux.just(retryRecord));
         when(procedureRetryRepository.markAsExhausted(CREDENTIAL_UUID, ActionType.UPLOAD_LABEL_TO_RESPONSE_URI))
                 .thenReturn(Mono.just(1));
         when(appConfig.getLabelUploadCertifierEmail()).thenReturn("certifier@example.com");
@@ -211,9 +211,9 @@ class ProcedureRetryServiceImplTest {
     }
 
     @Test
-    void processPendingRetries_deliverySucceeds_marksCompletedAndNotifies() throws Exception {
-        ProcedureRetry record = buildRetryRecord(RetryStatus.PENDING, 0, buildPayloadJson());
-        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(record));
+    void processPendingRetries_deliverySucceeds_marksCompletedAndNotifies(){
+        ProcedureRetry retryRecord = buildRetryRecord(RetryStatus.PENDING, 0, buildPayloadJson());
+        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(retryRecord));
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(Mono.just(ResponseUriDeliveryResult.success()));
@@ -230,19 +230,19 @@ class ProcedureRetryServiceImplTest {
     }
 
     @Test
-    void processPendingRetries_deliveryFails_incrementsAttemptAndContinues() throws Exception {
-        ProcedureRetry record = buildRetryRecord(RetryStatus.PENDING, 1, buildPayloadJson());
-        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(record));
+    void processPendingRetries_deliveryFails_incrementsAttemptAndContinues() {
+        ProcedureRetry retryRecord = buildRetryRecord(RetryStatus.PENDING, 1, buildPayloadJson());
+        when(procedureRetryRepository.findByStatus(RetryStatus.PENDING)).thenReturn(Flux.just(retryRecord));
         when(m2mTokenService.getM2MToken()).thenReturn(Mono.just(M2M_TOKEN));
         when(credentialDeliveryService.deliverLabelToResponseUri(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(Mono.error(new ResponseUriDeliveryException("not found", 404, RESPONSE_URI, CRED_ID)));
-        when(procedureRetryRepository.incrementAttemptCount(eq(CREDENTIAL_UUID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any(Instant.class)))
+        when(procedureRetryRepository.incrementAttemptCount(eq(CREDENTIAL_UUID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any(Instant.class), nullable(String.class)))
                 .thenReturn(Mono.just(1));
 
         StepVerifier.create(service.processPendingRetries())
                 .verifyComplete();
 
-        verify(procedureRetryRepository).incrementAttemptCount(eq(CREDENTIAL_UUID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any(Instant.class));
+        verify(procedureRetryRepository).incrementAttemptCount(eq(CREDENTIAL_UUID), eq(ActionType.UPLOAD_LABEL_TO_RESPONSE_URI), any(Instant.class), nullable(String.class));
         verify(procedureRetryRepository, never()).markAsCompleted(any(), any());
     }
 
@@ -314,6 +314,7 @@ class ProcedureRetryServiceImplTest {
                 .productSpecificationId(PROD_SPEC_ID)
                 .email(PROVIDER_EMAIL)
                 .signedCredential(SIGNED_VC)
+                .issuedBy("did:example:issuer-test")
                 .build();
     }
 

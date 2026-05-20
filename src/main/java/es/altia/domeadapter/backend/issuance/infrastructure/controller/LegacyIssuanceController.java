@@ -1,5 +1,6 @@
 package es.altia.domeadapter.backend.issuance.infrastructure.controller;
 
+import org.springframework.web.bind.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.altia.domeadapter.backend.issuance.application.TranslateLegacyIssuanceWorkflow;
 import es.altia.domeadapter.backend.shared.domain.model.dto.PreSubmittedCredentialDataRequest;
@@ -10,7 +11,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
@@ -35,7 +35,7 @@ public class LegacyIssuanceController {
             @RequestHeader(value = "X-ID-Token", required = false) String idToken,
             @RequestBody PreSubmittedCredentialDataRequest request
     ) {
-        if (!appConfig.isIssuerDomeAdapterEnabled()) {
+        if (!appConfig.isDomeAdapterEnabled()) {
             return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body("{\"message\":\"Endpoint not found\"}".getBytes()));

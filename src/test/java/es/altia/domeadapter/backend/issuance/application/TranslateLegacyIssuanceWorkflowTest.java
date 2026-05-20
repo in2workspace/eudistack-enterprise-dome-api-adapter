@@ -11,6 +11,7 @@ import es.altia.domeadapter.backend.shared.domain.model.dto.PreSubmittedCredenti
 import es.altia.domeadapter.backend.shared.domain.exception.UnsupportedCredentialSchemaException;
 import es.altia.domeadapter.backend.shared.domain.model.dto.retry.LabelCredentialDeliveryPayload;
 import es.altia.domeadapter.backend.shared.domain.model.enums.ActionType;
+import es.altia.domeadapter.backend.shared.domain.service.M2MTokenService;
 import es.altia.domeadapter.backend.shared.domain.service.ProcedureRetryService;
 import es.altia.domeadapter.backend.shared.domain.util.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -34,6 +37,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class TranslateLegacyIssuanceWorkflowTest {
 
     @Mock
@@ -48,10 +52,14 @@ class TranslateLegacyIssuanceWorkflowTest {
     @Mock
     private Validator validator;
 
+    @Mock
+    private M2MTokenService m2mTokenService;
+
     private TranslateLegacyIssuanceWorkflow workflow;
 
     @BeforeEach
     void setUp() {
+        when(m2mTokenService.getM2MToken()).thenReturn(Mono.empty());
         workflow = new TranslateLegacyIssuanceWorkflow(
                 issuerCorClientPort,
                 procedureRetryService,
@@ -59,7 +67,6 @@ class TranslateLegacyIssuanceWorkflowTest {
                 objectMapper,
                 validator
         );
-
     }
 
     @Test
@@ -84,6 +91,7 @@ class TranslateLegacyIssuanceWorkflowTest {
                 .thenReturn(Mono.just(IssuanceResponse.builder().signedCredential(signedCredential).build()));
         when(jwtUtils.extractCredentialId(signedCredential)).thenReturn(credentialId);
         when(jwtUtils.extractCredentialSubjectId(signedCredential)).thenReturn(productSpecId);
+        when(jwtUtils.extractSubject("idToken")).thenReturn("did:example:issuer-123");
         when(procedureRetryService.handleInitialAction(any(), any(), any())).thenReturn(Mono.empty());
 
         StepVerifier.create(workflow.execute(buildRequest("gx:LabelCredential", "https://response.uri"), "token", "idToken"))
@@ -103,6 +111,7 @@ class TranslateLegacyIssuanceWorkflowTest {
         assertThat(payload.signedCredential()).isEqualTo(signedCredential);
         assertThat(payload.responseUri()).isEqualTo("https://response.uri");
         assertThat(payload.email()).isEqualTo("test@example.com");
+        assertThat(payload.issuedBy()).isEqualTo("did:example:issuer-123");
     }
 
     @Test

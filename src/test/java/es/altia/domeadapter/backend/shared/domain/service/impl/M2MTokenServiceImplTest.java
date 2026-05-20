@@ -21,10 +21,10 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.mockito.Mockito.*;
 import static es.altia.domeadapter.backend.shared.domain.util.Constants.CLIENT_ASSERTION_TYPE_VALUE;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class M2MTokenServiceImplTest {
