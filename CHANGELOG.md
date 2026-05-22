@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### [0.0.2] - 2026-05-22
+
+### Changed
+- Simplified SMTP-related env vars to make them similar to the Issuer Core config.
+
 ### [0.0.1] - 2026-05-19
 
 ### Added
