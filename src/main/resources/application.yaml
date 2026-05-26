@@ -12,19 +12,19 @@ spring:
     locations: classpath:db/migration
     default-schema: ${SPRING_FLYWAY_DEFAULT_SCHEMA:dome_adapter}
   mail:
-    host: ${SPRING_MAIL_HOST:localhost}
-    port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:}
-    password: ${SPRING_MAIL_PASSWORD:}
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:true}
+          auth: ${SMTP_AUTH:true}
           starttls:
-            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:false}
+            enable: ${SMTP_STARTTLS:false}
           ssl:
-            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE:true}
-            trust: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_TRUST:}
+            enable: ${SMTP_SSL_ENABLE:true}
+            trust: ${SMTP_SSL_TRUST:}
   messages:
     basename: messages/messages
 
