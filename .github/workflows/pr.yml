@@ -1,9 +1,19 @@
-name: CI
+name: pr-to-main
 
 on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+
+env:
+  JACOCO_MIN_COVERAGE_OVERALL: 40
+  JACOCO_MIN_COVERAGE_CHANGED_FILES: 60
 
 permissions:
   contents: read
@@ -42,12 +52,12 @@ jobs:
         with:
           paths: build/reports/jacoco/test/jacocoTestReport.xml
           token: ${{ secrets.GITHUB_TOKEN }}
-          min-coverage-overall: 40
-          min-coverage-changed-files: 60
+          min-coverage-overall: ${{ env.JACOCO_MIN_COVERAGE_OVERALL }}
+          min-coverage-changed-files: ${{ env.JACOCO_MIN_COVERAGE_CHANGED_FILES }}
 
       - name: Upload Coverage Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
-          path: build/reports/jacoco/test/html/
+          path: build/jacocoHtml/
