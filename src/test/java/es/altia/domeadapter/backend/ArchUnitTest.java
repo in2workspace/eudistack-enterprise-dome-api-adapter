@@ -13,4 +13,5 @@ class ArchUnitTest {
     @ArchTest
     static final ArchRule testClassesShouldResideInTheSamePackageAsImplementation =
             GeneralCodingRules.testClassesShouldResideInTheSamePackageAsImplementation();
+    
 }
