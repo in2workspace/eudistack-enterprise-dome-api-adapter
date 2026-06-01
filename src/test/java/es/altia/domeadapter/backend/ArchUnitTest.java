@@ -15,3 +15,4 @@ class ArchUnitTest {
             GeneralCodingRules.testClassesShouldResideInTheSamePackageAsImplementation();
     
 }
+
