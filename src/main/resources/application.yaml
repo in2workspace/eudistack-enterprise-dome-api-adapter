@@ -27,6 +27,8 @@ spring:
             trust: ${SMTP_SSL_TRUST:}
   messages:
     basename: messages/messages
+  config:
+    import: optional:file:${ADAPTER_LOCALFILES_SECRETS:}
 
 logging:
   pattern:
@@ -74,7 +76,6 @@ app:
 
 adapter-identity:
   credential-subject-did-key: ${ADAPTER_IDENTITY_CREDENTIAL_SUBJECT_DID_KEY:}
-  jwt-credential: ${ADAPTER_IDENTITY_JWT_CREDENTIAL:}
   crypto:
     private-key: ${ADAPTER_IDENTITY_CRYPTO_PRIVATE_KEY:}
 
