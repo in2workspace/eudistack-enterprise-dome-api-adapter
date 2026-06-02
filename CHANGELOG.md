@@ -1,8 +1,12 @@
 ## [Unreleased]
 
-## [0.0.3] - 2026-06-02
+## [0.0.4] - 2026-06-02
 ### Changed
 - Set the identity JWT credential env var via config file instead of env vars to avoid issues with env var length limits.
+
+## [0.0.3] - 2026-06-02
+### Changed
+- This upgrade was performed to update ci/cd pipelines and activate them, it doesn't include significant code changes.
 
 ## [0.0.2] - 2026-05-22
 
