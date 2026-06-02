@@ -1,6 +1,10 @@
 ## [Unreleased]
 
-### [0.0.2] - 2026-05-22
+## [0.0.3] - 2026-06-02
+### Changed
+- Set the identity JWT credential env var via config file instead of env vars to avoid issues with env var length limits.
+
+## [0.0.2] - 2026-05-22
 
 ### Changed
 - Simplified SMTP-related env vars to make them similar to the Issuer Core config.
