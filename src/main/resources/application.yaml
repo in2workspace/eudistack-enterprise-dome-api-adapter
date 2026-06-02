@@ -9,6 +9,8 @@ spring:
     password: ${SPRING_R2DBC_PASSWORD:}
   flyway:
     url: ${SPRING_FLYWAY_URL:}
+    user: ${SPRING_R2DBC_USERNAME:}
+    password: ${SPRING_R2DBC_PASSWORD:}
     locations: classpath:db/migration
     default-schema: ${SPRING_FLYWAY_DEFAULT_SCHEMA:dome_adapter}
   mail:

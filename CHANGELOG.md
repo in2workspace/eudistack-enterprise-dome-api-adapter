@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.0.5] - 2026-06-02
+### Changed
+- Set Flyway username and password using a common env var with R2DBC config to avoid duplication.
+
+
 ## [0.0.4] - 2026-06-02
 ### Changed
 - Set the identity JWT credential env var via config file instead of env vars to avoid issues with env var length limits.
