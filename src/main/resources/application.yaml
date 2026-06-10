@@ -3,6 +3,8 @@ spring:
     name: dome-adapter
   main:
     web-application-type: reactive
+  webflux:
+    base-path: ${APP_CONTEXT_PATH:/vci}
   r2dbc:
     url: ${SPRING_R2DBC_URL:}
     username: ${SPRING_R2DBC_USERNAME:}
