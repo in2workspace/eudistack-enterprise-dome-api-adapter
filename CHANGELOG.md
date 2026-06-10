@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+## [0.0.6] - 2026-06-10
 ### Changed
 - Configured the application base path through Spring WebFlux using `spring.webflux.base-path`.
 - Removed `vci/` from the legacy issuance endpoint paths so the prefix is provided by the application context path.
