@@ -1,9 +1,12 @@
 ## [Unreleased]
 
+### Changed
+- Configured the application base path through Spring WebFlux using `spring.webflux.base-path`.
+- Removed `vci/` from the legacy issuance endpoint paths so the prefix is provided by the application context path.
+
 ## [0.0.5] - 2026-06-02
 ### Changed
 - Set Flyway username and password using a common env var with R2DBC config to avoid duplication.
-
 
 ## [0.0.4] - 2026-06-02
 ### Changed
