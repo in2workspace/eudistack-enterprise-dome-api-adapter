@@ -62,7 +62,7 @@ class LegacyIssuanceControllerTest {
         when(translateLegacyIssuanceWorkflow.execute(any(), anyString(), anyString())).thenReturn(Mono.error(ex));
 
         webTestClient.post()
-                .uri("//v1/issuances")
+                .uri("/v1/issuances")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer test-token")
                 .header("X-ID-Token", "id-token")
@@ -77,7 +77,7 @@ class LegacyIssuanceControllerTest {
         when(translateLegacyIssuanceWorkflow.execute(any(), tokenCaptor.capture(), anyString())).thenReturn(Mono.empty());
 
         webTestClient.post()
-                .uri("//v1/issuances")
+                .uri("/v1/issuances")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer actual-token-value")
                 .header("X-ID-Token", "id-token")
@@ -94,7 +94,7 @@ class LegacyIssuanceControllerTest {
         when(translateLegacyIssuanceWorkflow.execute(any(), anyString(), idTokenCaptor.capture())).thenReturn(Mono.empty());
 
         webTestClient.post()
-                .uri("//v1/issuances")
+                .uri("/v1/issuances")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer token")
                 .header("X-ID-Token", "my-id-token")
@@ -112,7 +112,7 @@ class LegacyIssuanceControllerTest {
         when(translateLegacyIssuanceWorkflow.execute(requestCaptor.capture(), anyString(), anyString())).thenReturn(Mono.empty());
 
         webTestClient.post()
-                .uri("//v1/issuances")
+                .uri("/v1/issuances")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer token")
                 .header("X-ID-Token", "id-token")
