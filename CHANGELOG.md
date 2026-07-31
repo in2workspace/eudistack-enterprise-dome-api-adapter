@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.0.7] - 2026-07-31
+
 ## Changed (2026-07-31)
 - Relaxed the token `iss` validation to match the configured verifier/issuer URLs by origin (scheme, host and port). A trailing slash or extra path segments on the claim, such as `https://verifier.dome-marketplace-sbx.org/verifier` against a configured `https://verifier.dome-marketplace-sbx.org`, no longer fail authentication.
 
