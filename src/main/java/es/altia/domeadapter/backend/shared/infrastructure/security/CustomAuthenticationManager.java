@@ -6,6 +6,7 @@ import com.nimbusds.jwt.SignedJWT;
 import es.altia.domeadapter.backend.shared.domain.exception.JWTVerificationException;
 import es.altia.domeadapter.backend.shared.domain.service.JWTService;
 import es.altia.domeadapter.backend.shared.domain.service.VerifierService;
+import es.altia.domeadapter.backend.shared.domain.util.IssuerUrlMatcher;
 import es.altia.domeadapter.backend.shared.infrastructure.config.AppConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -122,12 +123,15 @@ public class CustomAuthenticationManager implements ReactiveAuthenticationManage
     }
 
     private Mono<Jwt> verifyAndParseJwtForIssuer(String issuer, String token) {
-        if (issuer.equals(appConfig.getVerifierUrl())) {
-            log.debug("Token from Verifier - {}", appConfig.getVerifierUrl());
+        // Matched by origin (scheme + host + port) so a trailing slash or an extra
+        // path segment on the iss claim — e.g. https://verifier.example.org/verifier
+        // vs the configured https://verifier.example.org — is not a mismatch.
+        if (IssuerUrlMatcher.matchesOrigin(issuer, appConfig.getVerifierUrl())) {
+            log.debug("Token from Verifier - {} (iss: {})", appConfig.getVerifierUrl(), issuer);
             return handleVerifierToken(token);
         }
-        if (issuer.equals(appConfig.getIssuerUrl())) {
-            log.debug("Token from Issuer - {}", appConfig.getIssuerUrl());
+        if (IssuerUrlMatcher.matchesOrigin(issuer, appConfig.getIssuerUrl())) {
+            log.debug("Token from Issuer - {} (iss: {})", appConfig.getIssuerUrl(), issuer);
             return handleIssuerToken(token);
         }
         log.debug("Token from unknown issuer");

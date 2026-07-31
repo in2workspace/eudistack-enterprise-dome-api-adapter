@@ -75,8 +75,8 @@ public class VerifierServiceImpl implements VerifierService {
                         return Mono.error(new JWTParsingException("Error parsing JWT"));
                     }
 
-                    // Iss is validated upstream by CustomAuthenticationManager
-                    // via UrlResolver.expectedVerifierBaseUrl(exchange). We only
+                    // Iss is validated upstream by CustomAuthenticationManager, which
+                    // matches it against the configured verifier URL by origin. We only
                     // check expiration (when requested) and signature here.
 
                     if (checkExpiration && (claims.getExpirationTime() == null
@@ -103,7 +103,6 @@ public class VerifierServiceImpl implements VerifierService {
                 });
     }
 
-
     private JWSVerifier getJWSVerifier(SignedJWT signedJWT, JWKSet jwkSet) throws JOSEException {
         String keyId = signedJWT.getHeader().getKeyID();
         JWK jwk = jwkSet.getKeyByKeyId(keyId);
@@ -120,14 +119,19 @@ public class VerifierServiceImpl implements VerifierService {
 
     private Mono<JWKSet> fetchJWKSet(String jwksUri) {
         if (cachedJWKSet != null) {
+            log.info("Using cached JWK Set. Original JWKS URI: {}", jwksUri);
             return Mono.just(cachedJWKSet);
         }
 
         return Mono.defer(() -> {
             synchronized (jwkLock) {
                 if (cachedJWKSet != null) {
+                    log.info("Using cached JWK Set. Original JWKS URI: {}", jwksUri);
                     return Mono.just(cachedJWKSet);
                 }
+
+                log.info("Fetching JWK Set from URL: {}", jwksUri);
+
                 return oauth2VerifierWebClient.get()
                         .uri(jwksUri)
                         .retrieve()
@@ -149,6 +153,8 @@ public class VerifierServiceImpl implements VerifierService {
     public Mono<OpenIDProviderMetadata> getWellKnownInfo() {
         String wellKnownInfoEndpoint = appConfig.getVerifierUrl() + AUTHORIZATION_SERVER_METADATA_WELL_KNOWN_PATH;
 
+        log.info("Fetching OpenID Provider Metadata from URL: {}", wellKnownInfoEndpoint);
+
         return oauth2VerifierWebClient.get()
                 .uri(wellKnownInfoEndpoint)
                 .retrieve()
@@ -159,13 +165,18 @@ public class VerifierServiceImpl implements VerifierService {
     @Override
     public Mono<VerifierOauth2AccessToken> performTokenRequest(String body) {
         log.info("Performing token request...");
+
         return getWellKnownInfo()
-                .flatMap(metadata -> oauth2VerifierWebClient.post()
-                        .uri(metadata.tokenEndpoint())
-                        .header(CONTENT_TYPE, CONTENT_TYPE_URL_ENCODED_FORM)
-                        .bodyValue(body)
-                        .retrieve()
-                        .bodyToMono(VerifierOauth2AccessToken.class)
-                        .onErrorMap(e -> new TokenFetchException("Error fetching the token", e)));
+                .flatMap(metadata -> {
+                    log.info("Performing token request to URL: {}", metadata.tokenEndpoint());
+
+                    return oauth2VerifierWebClient.post()
+                            .uri(metadata.tokenEndpoint())
+                            .header(CONTENT_TYPE, CONTENT_TYPE_URL_ENCODED_FORM)
+                            .bodyValue(body)
+                            .retrieve()
+                            .bodyToMono(VerifierOauth2AccessToken.class)
+                            .onErrorMap(e -> new TokenFetchException("Error fetching the token", e));
+                });
     }
 }

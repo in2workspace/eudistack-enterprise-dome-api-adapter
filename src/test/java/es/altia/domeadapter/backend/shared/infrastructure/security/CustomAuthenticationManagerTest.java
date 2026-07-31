@@ -324,6 +324,43 @@ class CustomAuthenticationManagerTest {
     }
 
     @Test
+    void authenticateShouldAcceptVerifierTokenWhenIssuerCarriesTrailingSlashOrPath() {
+        String principal = "did:example:machine-1";
+
+        for (String issuer : new String[]{
+                VERIFIER_URL + "/",
+                VERIFIER_URL + "/verifier",
+                VERIFIER_URL + "/verifier/"
+        }) {
+            String accessToken = buildJwt(Map.of(
+                    "iss", issuer,
+                    "sub", principal,
+                    "exp", Instant.now().plusSeconds(3600).getEpochSecond(),
+                    "vc", Map.of(
+                            "type", new String[]{
+                                    "VerifiableCredential",
+                                    "LEARCredentialMachine"
+                            }
+                    )
+            ));
+
+            Authentication authentication = new TestingAuthenticationToken("ignored", accessToken);
+
+            when(verifierService.verifyToken(accessToken)).thenReturn(Mono.empty());
+            when(jwtService.resolvePrincipal(any(Jwt.class))).thenReturn(principal);
+
+            StepVerifier.create(authenticationManager.authenticate(authentication))
+                    .assertNext(auth -> {
+                        assertThat(auth).isInstanceOf(JwtAuthenticationToken.class);
+                        assertThat(auth.getName()).isEqualTo(principal);
+                    })
+                    .verifyComplete();
+
+            verify(verifierService).verifyToken(accessToken);
+        }
+    }
+
+    @Test
     void authenticateShouldFailWhenIssuerIsUnknown() {
         String accessToken = buildJwt(Map.of(
                 "iss", "https://unknown-issuer.example.com",
