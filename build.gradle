@@ -5,6 +5,7 @@ plugins {
 	id 'jacoco'
 	id 'checkstyle'
 	id 'org.sonarqube' version '7.2.2.6593'
+	id 'org.owasp.dependencycheck' version '12.2.0'
 }
 
 group = 'es.altia'
@@ -122,4 +123,10 @@ checkstyleMain {
 
 checkstyleTest {
 	source = 'src/test/java'
+}
+
+dependencyCheck {
+	failBuildOnCVSS = 7
+	formats = ['HTML', 'JSON']
+	suppressionFile = "${rootDir}/config/dependency-check/suppressions.xml"
 }
