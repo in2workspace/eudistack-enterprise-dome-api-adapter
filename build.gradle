@@ -2,10 +2,26 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.10'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'jacoco'
+	id 'checkstyle'
+	id 'org.sonarqube' version '7.2.2.6593'
 }
 
 group = 'es.altia'
 version = '0.0.6'
+
+jacoco {
+	toolVersion = "0.8.14"
+}
+
+sonar {
+	properties {
+		property 'sonar.projectKey', 'in2workspace_eudistack-enterprise-dome-api-adapter'
+		property 'sonar.organization', 'in2workspace'
+		property 'sonar.host.url', 'https://sonarcloud.io'
+		property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
+	}
+}
 
 java {
 	toolchain {
@@ -81,4 +97,27 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+	dependsOn(tasks.test)
+	reports {
+		xml.required.set(true)
+		csv.required.set(false)
+		html.outputLocation.set(layout.buildDirectory.dir('jacocoHtml'))
+	}
+}
+
+checkstyle {
+	toolVersion = '10.16.0'
+	configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+}
+
+checkstyleMain {
+	source = 'src/main/java'
+}
+
+checkstyleTest {
+	source = 'src/test/java'
 }
