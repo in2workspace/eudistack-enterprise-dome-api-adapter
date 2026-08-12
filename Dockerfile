@@ -8,6 +8,7 @@ ARG SKIP_TESTS=false
 WORKDIR /workspace
 COPY build.gradle settings.gradle ./
 COPY gradle ./gradle
+COPY config ./config
 COPY src ./src
 RUN if [ "$SKIP_TESTS" = "true" ]; then \
       gradle build --no-daemon -x test; \
