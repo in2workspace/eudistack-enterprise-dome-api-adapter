@@ -206,8 +206,17 @@ jobs:
             -e ADAPTER_IDENTITY_CREDENTIAL_SUBJECT_DID_KEY=did:key:dast-placeholder \
             -e ADAPTER_IDENTITY_JWT_CREDENTIAL=dast-placeholder \
             -e ADAPTER_IDENTITY_CRYPTO_PRIVATE_KEY="$(openssl rand -hex 32)" \
+            -e MANAGEMENT_HEALTH_MAIL_ENABLED=false \
             eudistack-enterprise-dome-api-adapter:pr
 
+      # This app exposes only the aggregate /health — no readiness group — and the
+      # aggregate includes Boot's mail indicator, which reports DOWN whenever no
+      # SMTP server is reachable (always true in this container) and tumbles the
+      # whole endpoint to 503 even though the app is fully up. Hence
+      # MANAGEMENT_HEALTH_MAIL_ENABLED=false above; the alternative would be
+      # enabling health probes in application.yaml, which is a product change and
+      # does not belong in a CI-only commit.
+      #
       # The actuator base-path is "/" but the app runs under spring.webflux
       # base-path "/vci", and which of the two wins for actuator depends on the
       # Boot version. Probe both instead of hard-coding a guess, and hand the
