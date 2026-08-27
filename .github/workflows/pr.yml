@@ -155,6 +155,12 @@ jobs:
       - name: Build Docker image
         run: docker build --build-arg SKIP_TESTS=true -t eudistack-enterprise-dome-api-adapter:pr .
 
+      # AppProperties and AdapterIdentityProperties are @Validated with @NotBlank
+      # (and @URL on the two endpoints), so the context refuses to start unless
+      # they are set — application.yaml defaults them to "". The values below are
+      # placeholders on purpose: AppConfig only hands these strings back through
+      # accessors, nothing parses them at startup, and the scan target is the
+      # health endpoint, which touches none of them.
       - name: Run container
         run: |
           docker run -d --name dome-adapter \
@@ -164,6 +170,11 @@ jobs:
             -e SPRING_R2DBC_USERNAME=dome \
             -e SPRING_R2DBC_PASSWORD=dome \
             -e SPRING_FLYWAY_URL=jdbc:postgresql://localhost:5432/dome_adapter \
+            -e APP_ISSUER_URL=http://localhost:9099/issuer \
+            -e APP_VERIFIER_URL=http://localhost:9099/verifier \
+            -e ADAPTER_IDENTITY_CREDENTIAL_SUBJECT_DID_KEY=did:key:dast-placeholder \
+            -e ADAPTER_IDENTITY_JWT_CREDENTIAL=dast-placeholder \
+            -e ADAPTER_IDENTITY_CRYPTO_PRIVATE_KEY=dast-placeholder \
             eudistack-enterprise-dome-api-adapter:pr
 
       # The actuator base-path is "/" but the app runs under spring.webflux
@@ -172,7 +183,7 @@ jobs:
       # winner to the scan step.
       - name: Wait for service health
         run: |
-          for i in $(seq 1 30); do
+          for i in $(seq 1 45); do
             for candidate in http://localhost:8081/health http://localhost:8081/vci/health; do
               if curl -sf "$candidate" > /dev/null; then
                 echo "ZAP_TARGET=$candidate" >> "$GITHUB_ENV"
