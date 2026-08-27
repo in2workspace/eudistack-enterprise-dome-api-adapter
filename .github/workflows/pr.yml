@@ -23,7 +23,6 @@ jobs:
   changes:
     name: Detect code changes
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: read
@@ -62,12 +61,6 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x ./gradlew
 
-      - name: Cache OWASP dependency-check NVD database
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/dependency-check-data
-          key: ${{ runner.os }}-depcheck-nvd
-
       - name: Build & Test
         run: ./gradlew build --info
 
@@ -101,14 +94,196 @@ jobs:
         with:
           scanMetadataReportFile: build/sonar/report-task.txt
 
-      - name: OWASP Dependency-Check
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: ./gradlew dependencyCheckAnalyze --info
+      - name: Get current date
+        id: date
+        run: echo "date=$(date -u +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
 
-      - name: Upload Dependency-Check Report
+      - name: Cache Trivy vulnerability DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: ${{ runner.os }}-trivy-db-${{ steps.date.outputs.date }}
+          restore-keys: |
+            ${{ runner.os }}-trivy-db-
+
+      - name: Trivy Vulnerability Scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'build/libs'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+          ignore-unfixed: true
+          format: 'table'
+          cache-dir: '~/.cache/trivy'
+          trivyignores: 'config/trivy/.trivyignore'
+
+      - name: Trivy Report (JSON)
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'build/libs'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
+          ignore-unfixed: true
+          format: 'json'
+          output: 'build/reports/trivy-report.json'
+          cache-dir: '~/.cache/trivy'
+          trivyignores: 'config/trivy/.trivyignore'
+
+      - name: Upload Trivy Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dependency-check-report
-          path: build/reports/dependency-check-report.html
+          name: trivy-report
+          path: build/reports/trivy-report.json
+
+  dast-baseline:
+    name: ZAP DAST Baseline
+    needs: [changes, build]
+    # Runs even when `build` is red: what this job exercises (the image boots and
+    # answers over HTTP) is orthogonal to the unit-test/coverage gate.
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    runs-on: ubuntu-latest
+    # Severity-split gate, not an all-or-nothing one:
+    #   - Low / Informational findings -> `fail_action: false` on the scan step.
+    #     On a passive baseline they are noise and never fail anything.
+    #   - High / Critical findings -> the "Fail on High/Critical findings" step
+    #     exits non-zero, which reddens the run so GitHub's failure notification
+    #     fires. Merge protection is unaffected: this job is not a required check.
+    #
+    # Scope caveat: this adapter exposes a single POST endpoint plus actuator, so
+    # the passive scan only ever sees the health response. That is still a real
+    # response to check (security headers, cache-control, content sniffing, and
+    # `show-details: always`, which leaks component detail), but do not read a
+    # green run here as coverage of the adapter's actual API surface.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: dome_adapter
+          POSTGRES_USER: dome
+          POSTGRES_PASSWORD: dome
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dome -d dome_adapter"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # SKIP_TESTS=true: the `build` job already ran the full suite for the
+      # quality gate — re-running it inside the image build would duplicate the
+      # work and risk failing this job on something unrelated to DAST.
+      - name: Build Docker image
+        run: docker build --build-arg SKIP_TESTS=true -t eudistack-enterprise-dome-api-adapter:pr .
+
+      # AppProperties and AdapterIdentityProperties are @Validated with @NotBlank
+      # (and @URL on the two endpoints), so the context refuses to start unless
+      # they are set — application.yaml defaults them to "".
+      #
+      # The URLs and the DID/JWT values are inert placeholders: AppConfig only
+      # hands those strings back through accessors, and nothing reads them on the
+      # health path this job scans. The private key is NOT inert — CryptoComponent
+      # builds an ECKey bean at startup with BigInteger(value, 16) over secp256r1
+      # and derives the public key from it — so it gets a real throwaway scalar,
+      # generated per run rather than committed here.
+      - name: Run container
+        run: |
+          docker run -d --name dome-adapter \
+            --network host \
+            -e SERVER_PORT=8081 \
+            -e SPRING_R2DBC_URL=r2dbc:postgresql://localhost:5432/dome_adapter \
+            -e SPRING_R2DBC_USERNAME=dome \
+            -e SPRING_R2DBC_PASSWORD=dome \
+            -e SPRING_FLYWAY_URL=jdbc:postgresql://localhost:5432/dome_adapter \
+            -e APP_ISSUER_URL=http://localhost:9099/issuer \
+            -e APP_VERIFIER_URL=http://localhost:9099/verifier \
+            -e ADAPTER_IDENTITY_CREDENTIAL_SUBJECT_DID_KEY=did:key:dast-placeholder \
+            -e ADAPTER_IDENTITY_JWT_CREDENTIAL=dast-placeholder \
+            -e ADAPTER_IDENTITY_CRYPTO_PRIVATE_KEY="$(openssl rand -hex 32)" \
+            -e MANAGEMENT_HEALTH_MAIL_ENABLED=false \
+            eudistack-enterprise-dome-api-adapter:pr
+
+      # This app exposes only the aggregate /health — no readiness group — and the
+      # aggregate includes Boot's mail indicator, which reports DOWN whenever no
+      # SMTP server is reachable (always true in this container) and tumbles the
+      # whole endpoint to 503 even though the app is fully up. Hence
+      # MANAGEMENT_HEALTH_MAIL_ENABLED=false above; the alternative would be
+      # enabling health probes in application.yaml, which is a product change and
+      # does not belong in a CI-only commit.
+      #
+      # The actuator base-path is "/" but the app runs under spring.webflux
+      # base-path "/vci", and which of the two wins for actuator depends on the
+      # Boot version. Probe both instead of hard-coding a guess, and hand the
+      # winner to the scan step.
+      - name: Wait for service health
+        run: |
+          for i in $(seq 1 45); do
+            for candidate in http://localhost:8081/health http://localhost:8081/vci/health; do
+              if curl -sf "$candidate" > /dev/null; then
+                echo "ZAP_TARGET=$candidate" >> "$GITHUB_ENV"
+                echo "Service healthy at $candidate"
+                exit 0
+              fi
+            done
+            sleep 2
+          done
+          echo "Service did not become healthy in time"
+          docker logs dome-adapter
+          exit 1
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: ${{ env.ZAP_TARGET }}
+          rules_file_name: 'dev-tools/testing/zap/zap-baseline.conf'
+          artifact_name: 'zap-report'
+          fail_action: false
+          allow_issue_writing: false
+
+      # The `zap-report` artifact is a ZIP with 90-day retention, so reading it
+      # means downloading it first. Dumping ZAP's markdown report into the job
+      # summary makes it readable on the run page itself, which is what a PR
+      # actually needs. action-baseline writes report_md.md to GITHUB_WORKSPACE.
+      - name: Publish ZAP report in the job summary
+        if: always()
+        run: |
+          if [ -f report_md.md ]; then
+            {
+              echo '## ZAP DAST Baseline'
+              echo
+              cat report_md.md
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo '## ZAP DAST Baseline'
+              echo
+              echo 'The scan produced no markdown report — check the step above.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # High/Critical gate. ZAP's risk scale tops out at 3 (High) today, so
+      # >= 3 also covers a future Critical level.
+      - name: Fail on High/Critical findings
+        if: always()
+        run: |
+          if [ ! -f report_json.json ]; then
+            echo "::warning::No ZAP JSON report to evaluate."
+            exit 0
+          fi
+          high=$(jq '[.site[]?.alerts[]? | select(((.riskcode // "0") | tonumber) >= 3)] | length' report_json.json)
+          echo "High/Critical alerts: ${high}"
+          if [ "${high}" -gt 0 ]; then
+            {
+              echo
+              echo "### Blocking: ${high} High/Critical finding(s)"
+              jq -r '.site[]?.alerts[]? | select(((.riskcode // "0") | tonumber) >= 3) | "- \(.riskdesc) — \(.name) (\(.count) instance(s))"' report_json.json
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::ZAP reported ${high} High/Critical alert(s)."
+            exit 1
+          fi
