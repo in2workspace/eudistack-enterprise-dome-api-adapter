@@ -5,13 +5,27 @@ plugins {
 	id 'jacoco'
 	id 'checkstyle'
 	id 'org.sonarqube' version '7.2.2.6593'
+	id 'org.cyclonedx.bom' version '2.2.0'
 }
 
 group = 'es.altia'
-version = '0.0.6'
+version = '0.0.7'
 
 jacoco {
 	toolVersion = "0.8.14"
+}
+
+// CycloneDX inventory (EUD-220): runtime classpath only — what ships in the
+// artifact — spec 1.6 JSON, serial number off so two runs of the same tree
+// produce byte-identical output.
+cyclonedxBom {
+	includeConfigs = ['runtimeClasspath']
+	schemaVersion = '1.6'
+	destination = project.file('build/reports/sbom')
+	outputName = 'sbom'
+	outputFormat = 'json'
+	includeBomSerialNumber = false
+	includeLicenseText = false
 }
 
 sonar {
@@ -71,8 +85,12 @@ dependencies {
 
 	// JWT / Crypto
 	implementation 'com.nimbusds:nimbus-jose-jwt:9.40'
-	implementation 'io.github.novacrypto:Base58:2022.01.17'
-	implementation 'org.bitcoinj:bitcoinj-core:0.17-alpha5'
+	// jcip-annotations is excluded on purpose: it declares no license at all, so
+	// there are no distribution rights to invoke, and its annotations are
+	// CLASS-retention — the JVM never looks for them at runtime.
+	implementation('org.bitcoinj:bitcoinj-core:0.17-alpha5') {
+		exclude group: 'net.jcip', module: 'jcip-annotations'
+	}
 
 	// Actuator / Monitoring
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'

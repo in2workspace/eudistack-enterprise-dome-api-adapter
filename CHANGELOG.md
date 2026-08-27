@@ -1,5 +1,17 @@
 ## [Unreleased]
 
+### Added
+
+- **EUD-38 — inventario CycloneDX y gate de licencias**: el repositorio genera su inventario CycloneDX 1.6 en cada construcción, lo publica como activo de cada release (`sbom-v<version>.cdx.json`, comprobando que la versión del inventario coincide con la del artefacto) y evalúa cada pull request contra la lista de licencias admitidas (`.github/license-policy.json`, transcripción de `conv-quality-security-gates.md` §16.1). El evaluador y su suite de tests viven en `.github/scripts/`, sin dependencias de terceros y sin depender de ningún otro repositorio. Guía operativa: `docs/_shared/guides/license-gate-and-sbom.md` en `eudistack-platform-dev`.
+
+### Changed
+
+- **`net.jcip:jcip-annotations` excluida de `bitcoinj-core`**: no declara ninguna licencia, así que no hay derecho de distribución que invocar, y sus anotaciones son de retención `CLASS` — la JVM no las busca en ejecución.
+
+### Removed
+
+- `io.github.novacrypto:Base58:2022.01.17` (GPL-3.0), **declarada pero nunca importada**: el código usa `org.bitcoinj.base.Base58` (Apache-2.0). Era el mismo componente copyleft fuerte que EUD-219 retiró de emisión y verificación, y sobrevivía aquí porque este repositorio quedó fuera de aquel alcance.
+
 ## Changed (2026-06-16)
 - Improved GDPR compliance by reducing PII logging.
 
