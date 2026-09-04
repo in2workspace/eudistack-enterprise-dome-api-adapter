@@ -8,6 +8,10 @@
 
 - **`net.jcip:jcip-annotations` excluida de `bitcoinj-core`**: no declara ninguna licencia, así que no hay derecho de distribución que invocar, y sus anotaciones son de retención `CLASS` — la JVM no las busca en ejecución.
 
+### Fixed
+
+- **EUD-168 — traducción del envelope `responses[]` del Issuer en `IssuerCoreClient`**: el Issuer cambió el body de emisión de un formato plano a un envelope por canal (`responses[]`, EUD-167 D-5/D-6); `IssuerCoreClient` seguía deserializando contra el formato antiguo, así que toda emisión directa de `gx:LabelCredential` (`delivery=email,direct` por defecto) leía un `signedCredential` nulo y fallaba pese a que el Issuer había emitido correctamente. `IssuanceResponse` no cambia de forma — es también el contrato legacy v2.x propio del adaptador hacia DOME (`LegacyIssuanceController` lo serializa verbatim) — la traducción queda confinada a `IssuerCoreClient`. Ver `docs/EUD-33-entrega-credenciales-delivery/EUD-167/spec-deltas.md` D-7 en `eudistack-platform-dev`.
+
 ### Removed
 
 - `io.github.novacrypto:Base58:2022.01.17` (GPL-3.0), **declarada pero nunca importada**: el código usa `org.bitcoinj.base.Base58` (Apache-2.0). Era el mismo componente copyleft fuerte que EUD-219 retiró de emisión y verificación, y sobrevivía aquí porque este repositorio quedó fuera de aquel alcance.
