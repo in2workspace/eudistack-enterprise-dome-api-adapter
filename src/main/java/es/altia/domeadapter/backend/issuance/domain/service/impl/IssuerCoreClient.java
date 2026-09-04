@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants.ISSUANCES_PATH;
 
@@ -41,7 +42,7 @@ public class IssuerCoreClient implements IssuerCoreClientPort {
                 .bodyValue(request)
                 .exchangeToMono(response -> {
                     if (response.statusCode().is2xxSuccessful()) {
-                        return response.bodyToMono(IssuanceResponse.class);
+                        return response.bodyToMono(IssuerHttpResponse.class).map(this::toIssuanceResponse);
                     }
 
                     return response.bodyToMono(byte[].class)
@@ -56,5 +57,33 @@ public class IssuerCoreClient implements IssuerCoreClientPort {
                                     )
                             ));
                 });
+    }
+
+    // Translates the Issuer's per-channel envelope (EUD-167 D-5/D-6) into the adapter's own flat
+    // IssuanceResponse. That shape is not just an internal deserialization target: LegacyIssuanceController
+    // serializes it verbatim as the adapter's v2.x contract towards DOME, so it cannot change to mirror
+    // responses[] -- only this translation step may know the envelope exists (EUD-167/spec-deltas.md D-7).
+    private IssuanceResponse toIssuanceResponse(IssuerHttpResponse httpResponse) {
+        List<IssuerChannelResponse> channels = httpResponse.responses();
+        if (channels == null) {
+            return IssuanceResponse.builder().build();
+        }
+
+        String signedCredential = channels.stream()
+                .filter(c -> "direct".equals(c.channel()) && c.body() != null)
+                .map(c -> c.body().signedCredential())
+                .findFirst()
+                .orElse(null);
+
+        String credentialOfferUri = channels.stream()
+                .filter(c -> c.body() != null && c.body().credentialOfferUri() != null)
+                .map(c -> c.body().credentialOfferUri())
+                .findFirst()
+                .orElse(null);
+
+        return IssuanceResponse.builder()
+                .signedCredential(signedCredential)
+                .credentialOfferUri(credentialOfferUri)
+                .build();
     }
 }
