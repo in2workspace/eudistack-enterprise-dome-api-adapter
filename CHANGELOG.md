@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.0.8] - 2026-09-04
+
+### Changed
+
+- **Tech debt: `IssuerCoreClient` limpieza menor** (`docs/_shared/reference/tech-debt-register.md` TDG-4/TDG-5 de `eudistack-platform-dev`): eliminado el campo `ObjectMapper` sin uso, y el test `IssuerCoreClientPortTest.java` renombrado a `IssuerCoreClientTest.java` para coincidir con la clase que declara (`IssuerCoreClientTest`) — la regla `ArchUnit` `testClassesShouldResideInTheSamePackageAsImplementation` exige que el nombre de la clase de test empareje con una clase real de su mismo paquete, y `IssuerCoreClientPort` (la interfaz) vive en el paquete padre, no en este.
+
+
 ### Added
 
 - **EUD-38 — inventario CycloneDX y gate de licencias**: el repositorio genera su inventario CycloneDX 1.6 en cada construcción, lo publica como activo de cada release (`sbom-v<version>.cdx.json`, comprobando que la versión del inventario coincide con la del artefacto) y evalúa cada pull request contra la lista de licencias admitidas (`.github/license-policy.json`, transcripción de `conv-quality-security-gates.md` §16.1). El evaluador y su suite de tests viven en `.github/scripts/`, sin dependencias de terceros y sin depender de ningún otro repositorio. Guía operativa: `docs/_shared/guides/license-gate-and-sbom.md` en `eudistack-platform-dev`.
@@ -7,6 +14,10 @@
 ### Changed
 
 - **`net.jcip:jcip-annotations` excluida de `bitcoinj-core`**: no declara ninguna licencia, así que no hay derecho de distribución que invocar, y sus anotaciones son de retención `CLASS` — la JVM no las busca en ejecución.
+
+### Fixed
+
+- **EUD-168 — traducción del envelope `responses[]` del Issuer en `IssuerCoreClient`**: el Issuer cambió el body de emisión de un formato plano a un envelope por canal (`responses[]`, EUD-167 D-5/D-6); `IssuerCoreClient` seguía deserializando contra el formato antiguo, así que toda emisión directa de `gx:LabelCredential` (`delivery=email,direct` por defecto) leía un `signedCredential` nulo y fallaba pese a que el Issuer había emitido correctamente. `IssuanceResponse` no cambia de forma — es también el contrato legacy v2.x propio del adaptador hacia DOME (`LegacyIssuanceController` lo serializa verbatim) — la traducción queda confinada a `IssuerCoreClient`. Ver `docs/EUD-33-entrega-credenciales-delivery/EUD-167/spec-deltas.md` D-7 en `eudistack-platform-dev`.
 
 ### Removed
 
