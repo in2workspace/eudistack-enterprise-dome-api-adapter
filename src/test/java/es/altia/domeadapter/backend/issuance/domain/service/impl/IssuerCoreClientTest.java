@@ -1,6 +1,5 @@
 package es.altia.domeadapter.backend.issuance.domain.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuerPreSubmittedCredentialDataRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +37,7 @@ class IssuerCoreClientTest {
     @BeforeEach
     void setUp() {
         WebClient webClient = WebClient.builder().exchangeFunction(exchangeFunction).build();
-        service = new IssuerCoreClient(webClient, new ObjectMapper());
+        service = new IssuerCoreClient(webClient);
     }
 
     @Test

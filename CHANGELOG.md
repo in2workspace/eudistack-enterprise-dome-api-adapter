@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Changed
+
+- **Tech debt: `IssuerCoreClient` limpieza menor** (`docs/_shared/reference/tech-debt-register.md` TDG-4/TDG-5 de `eudistack-platform-dev`): eliminado el campo `ObjectMapper` sin uso, y el test `IssuerCoreClientPortTest.java` renombrado a `IssuerCoreClientTest.java` para coincidir con la clase que declara (`IssuerCoreClientTest`) — la regla `ArchUnit` `testClassesShouldResideInTheSamePackageAsImplementation` exige que el nombre de la clase de test empareje con una clase real de su mismo paquete, y `IssuerCoreClientPort` (la interfaz) vive en el paquete padre, no en este.
+
 ## [0.0.8] - 2026-09-04
 
 ### Added

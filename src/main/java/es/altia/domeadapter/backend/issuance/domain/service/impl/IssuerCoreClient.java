@@ -1,6 +1,5 @@
 package es.altia.domeadapter.backend.issuance.domain.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import es.altia.domeadapter.backend.issuance.domain.service.IssuerCoreClientPort;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuerPreSubmittedCredentialDataRequest;
 import es.altia.domeadapter.backend.shared.domain.model.dto.IssuanceResponse;
@@ -24,7 +23,6 @@ import static es.altia.domeadapter.backend.shared.domain.util.EndpointsConstants
 public class IssuerCoreClient implements IssuerCoreClientPort {
 
     private final WebClient issuerWebClient;
-    private final ObjectMapper objectMapper;
 
     @Override
     public Mono<IssuanceResponse> forward(IssuerPreSubmittedCredentialDataRequest request, String bearerToken, String idToken) {
