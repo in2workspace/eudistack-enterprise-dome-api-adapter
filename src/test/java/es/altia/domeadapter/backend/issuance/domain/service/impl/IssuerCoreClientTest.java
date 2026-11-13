@@ -53,7 +53,7 @@ class IssuerCoreClientTest {
     @Test
     void forward_bothChannelsSucceed_mapsSignedCredentialAndOfferUri() {
         // gx:LabelCredential's default delivery is "email,direct" (Constants.DEFAULT_LABEL_DELIVERY) --
-        // the Issuer returns 200 with one responses[] item per channel when both complete.
+        // the issuer returns 200 with one responses[] item per channel when both complete.
         ClientResponse cr = successResponse(envelope(
                 successChannel("email", null, "openid-credential-offer://issuer"),
                 successChannel("direct", "signed.credential.jwt", null)
