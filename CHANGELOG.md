@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.0.9] - 2026-11-16
+
+### Changed
+
+- Publicación de una nueva imagen en ECR sin cambios funcionales: incremento de versión para disparar el workflow `cd-dev` tras la migración a los workflows TBD.
+
 ## [0.0.8] - 2026-09-04
 
 ### Changed
