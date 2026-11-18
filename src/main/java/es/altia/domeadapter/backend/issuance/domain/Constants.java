@@ -14,6 +14,8 @@ public final class Constants {
     public static final String ISSUER_LEAR_CREDENTIAL_EMPLOYEE_SCHEMA = "learcredential.employee.w3c.4";
     public static final String ISSUER_LEAR_CREDENTIAL_MACHINE_SCHEMA = "learcredential.machine.w3c.3";
 
-    public static final String DEFAULT_LABEL_DELIVERY = "email,direct";
+    // The Issuer takes a single delivery mode (EUD-268). A label credential is always "direct": the
+    // adapter needs the signed credential in the response to upload it to DOME's response_uri.
+    public static final String LABEL_DELIVERY = "direct";
     public static final String DEFAULT_DELIVERY = "email";
 }

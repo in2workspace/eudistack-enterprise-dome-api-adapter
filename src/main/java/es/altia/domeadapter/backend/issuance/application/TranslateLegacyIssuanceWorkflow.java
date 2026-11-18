@@ -201,13 +201,16 @@ public class TranslateLegacyIssuanceWorkflow {
         };
     }
 
+    // A label credential ignores the delivery sent by DOME: any mode other than "direct" leaves the
+    // adapter without the signed credential it must upload. Other schemas pass DOME's value through
+    // unchanged; the Issuer rejects a list of modes with 400 invalid_delivery_mode (EUD-268).
     private String resolveDelivery(PreSubmittedCredentialDataRequest request) {
-        if (request.delivery() != null && !request.delivery().isBlank()) {
-            return request.delivery();
+        if (isLabelCredentialSchema(request.schema())) {
+            return LABEL_DELIVERY;
         }
 
-        if (isLabelCredentialSchema(request.schema())) {
-            return DEFAULT_LABEL_DELIVERY;
+        if (request.delivery() != null && !request.delivery().isBlank()) {
+            return request.delivery();
         }
 
         return DEFAULT_DELIVERY;
