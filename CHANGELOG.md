@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.0.10] - 2026-11-18
+
 ### Fixed
 
 - **EUD-268 — un solo modo de entrega en la credencial de etiqueta**: el emisor 3.15.0 acepta un solo modo en `delivery` y responde `400 invalid_delivery_mode` a una lista. El valor por defecto de la etiqueta (`email,direct`) hacía fallar toda emisión de `gx:LabelCredential`. Ahora la etiqueta se envía siempre como `direct`, aunque DOME indique otro modo: el adaptador necesita la credencial firmada para subirla a `response_uri`. Para el resto de esquemas se reenvía el `delivery` de DOME sin cambios (por defecto, `email`); si DOME envía una lista, el `400` del emisor vuelve a DOME.
