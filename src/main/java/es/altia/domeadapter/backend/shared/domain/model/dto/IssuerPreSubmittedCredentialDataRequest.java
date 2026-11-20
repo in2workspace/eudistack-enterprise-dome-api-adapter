@@ -15,10 +15,5 @@ public record IssuerPreSubmittedCredentialDataRequest(
         @JsonProperty("email") String email,
         @JsonProperty("delivery") String delivery
 ) {
-        public IssuerPreSubmittedCredentialDataRequest {
-                if (delivery == null || delivery.isBlank()) {
-                        delivery = "email,direct";
-                }
-        }
 }
 

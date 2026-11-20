@@ -51,49 +51,9 @@ class IssuerCoreClientTest {
     }
 
     @Test
-    void forward_bothChannelsSucceed_mapsSignedCredentialAndOfferUri() {
-        // gx:LabelCredential's default delivery is "email,direct" (Constants.DEFAULT_LABEL_DELIVERY) --
-        // the Issuer returns 200 with one responses[] item per channel when both complete.
-        ClientResponse cr = successResponse(envelope(
-                successChannel("email", null, "openid-credential-offer://issuer"),
-                successChannel("direct", "signed.credential.jwt", null)
-        ));
-        when(exchangeFunction.exchange(any())).thenReturn(Mono.just(cr));
-
-        StepVerifier.create(service.forward(buildRequest(), "token", "id-token"))
-                .assertNext(r -> {
-                    assertThat(r.signedCredential()).isEqualTo("signed.credential.jwt");
-                    assertThat(r.credentialOfferUri()).isEqualTo("openid-credential-offer://issuer");
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void forward_directSucceedsEmailFails_returns207WithSignedCredentialOnly() {
-        // Mixed outcome (EUD-167 D-5): 207 is 2xx-range, so the adapter still parses it as a body.
-        ClientResponse cr = successResponse(envelope(
-                successChannel("direct", "signed.credential.jwt", null),
-                failedChannel("email", 503)
-        ));
-        when(exchangeFunction.exchange(any())).thenReturn(Mono.just(cr));
-
-        StepVerifier.create(service.forward(buildRequest(), "token", "id-token"))
-                .assertNext(r -> {
-                    assertThat(r.signedCredential()).isEqualTo("signed.credential.jwt");
-                    assertThat(r.credentialOfferUri()).isNull();
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    void forward_directFailsEmailSucceeds_returnsNullSignedCredential() {
-        // Direct itself failed inside a 207 mixed outcome: no signed credential to report, even though
-        // the sibling channel completed. TranslateLegacyIssuanceWorkflow.handleLabelCredentialResponse
-        // already treats a null/blank signedCredential as failure -- unchanged by this fix.
-        ClientResponse cr = successResponse(envelope(
-                failedChannel("direct", 503),
-                successChannel("email", null, "openid-credential-offer://issuer")
-        ));
+    void forward_emailChannelSucceeds_mapsOfferUri() {
+        // Since EUD-268 the Issuer answers 200 with a single responses[] item: the requested mode.
+        ClientResponse cr = successResponse(envelope(successChannel("email", null, "openid-credential-offer://issuer")));
         when(exchangeFunction.exchange(any())).thenReturn(Mono.just(cr));
 
         StepVerifier.create(service.forward(buildRequest(), "token", "id-token"))
@@ -102,6 +62,21 @@ class IssuerCoreClientTest {
                     assertThat(r.credentialOfferUri()).isEqualTo("openid-credential-offer://issuer");
                 })
                 .verifyComplete();
+    }
+
+    @Test
+    void forward_503DeliveryFailure_throwsWebClientResponseException() {
+        // A failed delivery is a problem+json error (503 + Retry-After, or 500), never a 2xx body (EUD-268).
+        ClientResponse cr = errorResponse(HttpStatus.SERVICE_UNAVAILABLE,
+                "{\"type\":\"signing_failed\",\"title\":\"Signing failed\",\"status\":503}");
+        when(exchangeFunction.exchange(any())).thenReturn(Mono.just(cr));
+
+        StepVerifier.create(service.forward(buildRequest(), "token", "id-token"))
+                .expectErrorSatisfies(e -> {
+                    assertThat(e).isInstanceOf(WebClientResponseException.class);
+                    assertThat(((WebClientResponseException) e).getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+                })
+                .verify();
     }
 
     @Test
@@ -162,11 +137,6 @@ class IssuerCoreClientTest {
         return new IssuerChannelResponse(channel, 200, new IssuerChannelBody(signedCredential, credentialOfferUri), null);
     }
 
-    private IssuerChannelResponse failedChannel(String channel, int status) {
-        return new IssuerChannelResponse(channel, status, null,
-                new IssuerChannelError("about:blank", "Delivery failed", status, "Delivery failed for channel '" + channel + "'"));
-    }
-
     private ClientResponse successResponse(IssuerHttpResponse body) {
         ClientResponse cr = mock(ClientResponse.class);
         when(cr.statusCode()).thenReturn(HttpStatus.OK);
@@ -192,10 +162,10 @@ class IssuerCoreClientTest {
 
     private IssuerPreSubmittedCredentialDataRequest buildRequest() {
         return IssuerPreSubmittedCredentialDataRequest.builder()
-                .schema("gx.labelcredential.w3c.1")
+                .schema("gx.labelcredential.w3c.2")
                 .payload(JsonNodeFactory.instance.objectNode())
                 .email("test@example.com")
-                .delivery("email,direct")
+                .delivery("direct")
                 .build();
     }
 }

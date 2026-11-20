@@ -115,7 +115,21 @@ class TranslateLegacyIssuanceWorkflowTest {
     }
 
     @Test
-    void execute_delivery_labelCredential_noExplicit_usesDefaultLabelDelivery() {
+    void execute_delivery_labelCredential_noExplicit_usesDirect() {
+        assertThat(forwardedLabelDelivery(null)).isEqualTo("direct");
+    }
+
+    @Test
+    void execute_delivery_labelCredential_explicitList_stillUsesDirect() {
+        assertThat(forwardedLabelDelivery("email,direct")).isEqualTo("direct");
+    }
+
+    @Test
+    void execute_delivery_labelCredential_explicitOtherMode_stillUsesDirect() {
+        assertThat(forwardedLabelDelivery("email")).isEqualTo("direct");
+    }
+
+    private String forwardedLabelDelivery(String delivery) {
         String signedCredential = "header.payload.sig";
         UUID credentialId = UUID.randomUUID();
 
@@ -128,11 +142,20 @@ class TranslateLegacyIssuanceWorkflowTest {
         when(jwtUtils.extractCredentialSubjectId(signedCredential)).thenReturn("https://example.com/product/123");
         when(procedureRetryService.handleInitialAction(any(), any(), any())).thenReturn(Mono.empty());
 
-        StepVerifier.create(workflow.execute(buildRequest("gx:LabelCredential", null), "token", "idToken"))
+        PreSubmittedCredentialDataRequest request = PreSubmittedCredentialDataRequest.builder()
+                .schema("gx:LabelCredential")
+                .format("jwt_vc_json")
+                .operationMode("S")
+                .payload(JsonNodeFactory.instance.objectNode())
+                .email("test@example.com")
+                .delivery(delivery)
+                .build();
+
+        StepVerifier.create(workflow.execute(request, "token", "idToken"))
                 .expectNextCount(1)
                 .verifyComplete();
 
-        assertThat(captor.getValue().delivery()).isEqualTo("email,direct");
+        return captor.getValue().delivery();
     }
 
     @Test
